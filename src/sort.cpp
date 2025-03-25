@@ -7,8 +7,8 @@
 using namespace std;
 using namespace std::chrono;
 
-#define CASE_ITEMS 30 // number of items in each case
-#define CASES 3        // number of cases
+#define CASE_ITEMS 15000 // number of items in each case
+#define CASES 30        // number of cases
 #define RNGKEYS rand() % CASE_ITEMS
 #define INSKEYS CASE_ITEMS - i // worst case for insertion sort
 #define UNSORTED "./tosort.txt"
@@ -94,7 +94,7 @@ void QuickSortCore(vector<entry>&arr,int left,int right)
                 swap(arr[i], arr[j]); // found both elements belonging to other side
         } while (i < j);
         swap(arr[left], arr[j]); // swap pivot with last element of left partition
-        QuickSortCore(arr, left, i - 1);  // left partition
+        QuickSortCore(arr, left, j - 1);  // left partition
         QuickSortCore(arr, j + 1, right); // right partition
         }
 }
