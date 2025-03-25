@@ -7,8 +7,8 @@
 using namespace std;
 using namespace std::chrono;
 
-#define CASE_ITEMS 2000 // number of items in each case
-#define CASES 10        // number of cases
+#define CASE_ITEMS 30 // number of items in each case
+#define CASES 3        // number of cases
 #define RNGKEYS rand() % CASE_ITEMS
 #define INSKEYS CASE_ITEMS - i // worst case for insertion sort
 #define UNSORTED "./tosort.txt"
@@ -59,7 +59,6 @@ unsigned long InsertionSort(vector<entry> &arr, int c)
             }
         }
         swap(arr[i], arr[min]);
-        // cout<<arr[i].key<<endl;
     }
     auto stop = high_resolution_clock::now();
     auto dur = duration_cast<milliseconds>(stop - timer);
@@ -68,9 +67,57 @@ unsigned long InsertionSort(vector<entry> &arr, int c)
     FILE *file = fopen(TIMEREC, "a");
     fprintf(file, "Sorted case #%d with %lu items in %ld microseconds with Insertion\n",
             c, CASE_ITEMS, dur.count());
-    fclose(file);
+    if (file != nullptr)
+    {
+        fclose(file);
+    }
     return dur.count();
 }
+
+void QuickSortCore(vector<entry>&arr,int left,int right)
+{
+    
+    // Start sort
+    if (left < right)
+    {
+        entry *pivot = &arr[left];
+        int i = left, j = right + 1;
+        do
+        {
+            do
+                i++;
+            while (arr[i].key < pivot->key); // left push towards mid
+            do
+                j--;
+            while (arr[j].key > pivot->key);
+            if (i < j)
+                swap(arr[i], arr[j]); // found both elements belonging to other side
+        } while (i < j);
+        swap(arr[left], arr[j]); // swap pivot with last element of left partition
+        QuickSortCore(arr, left, i - 1);  // left partition
+        QuickSortCore(arr, j + 1, right); // right partition
+        }
+}
+
+unsigned long QuickSort(vector<entry> &arr, int casenum) // provide arr and specify the case num for print
+{                                                        // returns run time in microseconds
+    cout << "Start quick sort\n";
+    auto timer = high_resolution_clock::now(); // record run time dur
+    QuickSortCore(arr,0,arr.size()-1); //actual sort from 0 to n - 1
+
+    auto stop = high_resolution_clock::now();
+    auto dur = duration_cast<milliseconds>(stop - timer);
+    // output performance record
+    cout << "Sorted array in " << dur.count() << " microseconds\n";
+    FILE *file = fopen(TIMEREC, "a");
+    fprintf(file, "Sorted case #%d with %lu items in %ld microseconds with Quick\n",
+            casenum, CASE_ITEMS, dur.count());
+    if(file!=nullptr)
+        fclose(file);
+    return dur.count();
+}
+
+
 
 int main(void)
 {
@@ -87,11 +134,11 @@ int main(void)
     srand(time(0));                   // set random
     vector<vector<entry>> superarray; // all cases stored here
 
-    makeCases(CASES, superarray, f_Unsorted, "INSERTION"); // create cases, provide file path for unsorted cases
+    makeCases(CASES, superarray, f_Unsorted, "QUICK"); // create cases, provide file path for unsorted cases
 
     for (int i = 0, c = 1; i < superarray.size(); i++, c++) // sort each case
     {
-        auto duration = InsertionSort(superarray[i], c); // returns runtime after sorting
+        auto duration = QuickSort(superarray[i], c); // returns runtime after sorting
         fprintf(f_Sorted, "\nCase %d of %lu items finished in %lu microseconds\n", c, CASE_ITEMS, duration);
         for (int j = 0; j < CASE_ITEMS; j++) // output keys of sorted array
         {
@@ -126,7 +173,7 @@ void makeCases(int cases, vector<vector<entry>> &superarray, FILE *unsortedfile,
         }
         if (mode == "QUICK" || mode == "HEAP") // do the Permutation() provided
         {
-            for (int i = CASE_ITEMS; i > 2; i--)
+            for (int i = CASE_ITEMS - 1; i >= 2; i--)
             {
                 int j = rand() % i + 1;
                 swap(array[i], array[j]);
