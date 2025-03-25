@@ -8,9 +8,9 @@ using namespace std;
 using namespace std::chrono;
 
 #define CASE_ITEMS 2000 // number of items in each case
-#define CASES 10     // number of cases
+#define CASES 10        // number of cases
 #define RNGKEYS rand() % CASE_ITEMS
-#define INSKEYS CASE_ITEMS - i //worst case for insertion sort
+#define INSKEYS CASE_ITEMS - i // worst case for insertion sort
 #define UNSORTED "./tosort.txt"
 #define SORTED "./sorted.txt"
 #define TIMEREC "./timer.txt"
@@ -40,7 +40,7 @@ private:
     node *data;
 };
 
-void makeCases(int, vector<vector<entry>> &, FILE *,string); // forward declare
+void makeCases(int, vector<vector<entry>> &, FILE *, string); // forward declare
 
 // sort a case of array with insertion
 // returns runtime in microseconds
@@ -63,7 +63,7 @@ unsigned long InsertionSort(vector<entry> &arr, int c)
     }
     auto stop = high_resolution_clock::now();
     auto dur = duration_cast<milliseconds>(stop - timer);
-    //output performance record
+    // output performance record
     cout << "Sorted array in " << dur.count() << " microseconds\n";
     FILE *file = fopen(TIMEREC, "a");
     fprintf(file, "Sorted case #%d with %lu items in %ld microseconds with Insertion\n",
@@ -87,7 +87,7 @@ int main(void)
     srand(time(0));                   // set random
     vector<vector<entry>> superarray; // all cases stored here
 
-    makeCases(CASES, superarray, f_Unsorted,"INSERTION"); // create cases, provide file path for unsorted cases
+    makeCases(CASES, superarray, f_Unsorted, "INSERTION"); // create cases, provide file path for unsorted cases
 
     for (int i = 0, c = 1; i < superarray.size(); i++, c++) // sort each case
     {
@@ -105,7 +105,7 @@ int main(void)
     return 0;
 }
 
-void makeCases(int cases, vector<vector<entry>> &superarray, FILE *unsortedfile,string mode)
+void makeCases(int cases, vector<vector<entry>> &superarray, FILE *unsortedfile, string mode)
 {
     for (int c = 0; c < cases; c++) // create cases
     {
@@ -115,18 +115,18 @@ void makeCases(int cases, vector<vector<entry>> &superarray, FILE *unsortedfile,
         for (int i = 0; i < CASE_ITEMS; i++) // create array with nodes
         {
             node *n = new node;
-            if(mode=="INSERTION")   //generate key nums by mode
-                key = INSKEYS; 
-            else if(mode=="RANDOM")
+            if (mode == "INSERTION") // generate key nums by mode
+                key = INSKEYS;
+            else if (mode == "RANDOM")
                 key = RNGKEYS;
             else
-                key = i; //will process after array is created
+                key = i;     // will process after array is created
             entry e(key, n); // create entry with key and node
             array.push_back(e);
         }
-        if(mode=="QUICK"||mode=="HEAP") //do the Permutation() provided
+        if (mode == "QUICK" || mode == "HEAP") // do the Permutation() provided
         {
-            for (int i = CASE_ITEMS; i > 2;i--)
+            for (int i = CASE_ITEMS; i > 2; i--)
             {
                 int j = rand() % i + 1;
                 swap(array[i], array[j]);
