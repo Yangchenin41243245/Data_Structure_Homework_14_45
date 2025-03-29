@@ -181,7 +181,9 @@ vector<entry> MergeCore(vector<entry>& a, vector<entry>& b) // core sorting func
 ```
 ## 效能分析
 
-1. 時間複雜度：程式的時間複雜度為 $O(\log n)$。
+1. 時間複雜度：理論上時間複雜度為
+   ### Insertion & Quick: $n^2$<br>
+   ### Merge & Heap: $nlogn$<br>
 
 ## 測試與驗證
 
