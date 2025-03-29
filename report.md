@@ -29,6 +29,7 @@ if (mode == "QUICK" || mode == "HEAP") // do the Permutation() provided
 <br>
 3.設定迴圈數後執行排序法並記錄耗時<br>
 4.整理資料筆數 & 執行時間的關係<br>
+
 ## 程式實作
 
 以下為主要程式碼：
