@@ -14,7 +14,7 @@
 
 1.實作四種排序法，針對key(整數)由小到大排序內容<br>
 2.產生對各種方式最壞場合的測資<br>
-。Insertion & Merge: 由大排到小
+。Insertion & Merge: 由大排到小<br>
 。Quick & Heap: 使用題目提供的排列函式
 ```
 if (mode == "QUICK" || mode == "HEAP") // do the Permutation() provided
@@ -28,7 +28,7 @@ if (mode == "QUICK" || mode == "HEAP") // do the Permutation() provided
 ```
 <br>
 3.設定迴圈數後執行排序法並記錄耗時<br>
-4.整理資料筆數 & 執行時間的關係
+4.整理資料筆數 & 執行時間的關係<br>
 ## 程式實作
 
 以下為主要程式碼：
