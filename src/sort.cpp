@@ -8,7 +8,7 @@ using namespace std;
 using namespace std::chrono;
 
 #define CASE_ITEMS 15000 // number of items in each case
-#define CASES 30        // number of cases
+#define CASES 10      // number of cases
 #define RNGKEYS rand() % CASE_ITEMS
 #define INSKEYS CASE_ITEMS - i // worst case for insertion sort
 #define UNSORTED "./tosort.txt"
@@ -30,7 +30,10 @@ public:
         key = k;
         data = d;
     }
-    void setkey(int k) { key = k; }
+    void setkey(int k) 
+    {
+        key = k; 
+    }
     void outputkey(FILE *file)
     {
         fprintf(file, " key: %ld\n", key);
@@ -44,7 +47,7 @@ void makeCases(int, vector<vector<entry>> &, FILE *, string); // forward declare
 
 // sort a case of array with insertion
 // returns runtime in microseconds
-unsigned long InsertionSort(vector<entry> &arr, int c)
+unsigned long InsertionSort(vector<entry> &arr, int casenum)
 {
     cout << "Start insertion sort\n";
     auto timer = high_resolution_clock::now();
@@ -66,7 +69,7 @@ unsigned long InsertionSort(vector<entry> &arr, int c)
     cout << "Sorted array in " << dur.count() << " microseconds\n";
     FILE *file = fopen(TIMEREC, "a");
     fprintf(file, "Sorted case #%d with %lu items in %ld microseconds with Insertion\n",
-            c, CASE_ITEMS, dur.count());
+            casenum, CASE_ITEMS, dur.count());
     if (file != nullptr)
     {
         fclose(file);
@@ -117,7 +120,78 @@ unsigned long QuickSort(vector<entry> &arr, int casenum) // provide arr and spec
     return dur.count();
 }
 
+vector<entry> MergeCore(vector<entry>& a, vector<entry>& b) // core sorting func, uses iterators
+{
+    vector<entry> c;
+    c.reserve(a.size() + b.size()); // reserve memory
 
+    auto it_a = a.begin();
+    auto it_b = b.begin();
+
+    while (it_a != a.end() && it_b != b.end()) // compare and push to merged array
+    {
+        if (it_a->key < it_b->key)
+        {
+            c.push_back(std::move(*it_a)); // move smaller key to merged array
+            ++it_a;
+        }
+        else
+        {
+            c.push_back(std::move(*it_b));
+            ++it_b;
+        }
+    }
+
+    // move remaining elements from either array
+    while (it_a != a.end())
+    {
+        c.push_back(std::move(*it_a));
+        ++it_a;
+    }
+    while (it_b != b.end())
+    {
+        c.push_back(std::move(*it_b));
+        ++it_b;
+    }
+
+    return c; // return merged array
+}
+
+vector<entry> MergeCut(vector<entry>arr) //cut array func
+{
+    if(arr.size() <= 1) { return arr; } // nothing to sort, return the input array
+
+    vector<entry> left, right;
+    int mid = arr.size() / 2; // get mid point
+    for (int i = 0; i < mid; i++)
+        left.push_back(arr[i]); // cut left part
+    for (int i = mid; i < arr.size(); i++)
+        right.push_back(arr[i]); // cut right part
+
+    //start recursion
+    left = MergeCut(left); // cut left and assign sorted left part
+    right = MergeCut(right); // cut right and assign sorted right part
+
+    return MergeCore(left, right); //run sorting and join sorted parts (bottom layer: 1+1=2)
+}
+
+unsigned long MergeSort(vector<entry>&arr, int casenum) //run and record time
+{
+    cout << "Start merge sort\n";
+    auto timer = high_resolution_clock::now(); // record run time dur
+    arr = MergeCut(arr); // start sorting, assign sorted array back to arr
+
+    auto stop = high_resolution_clock::now();
+    auto dur = duration_cast<milliseconds>(stop - timer);
+    // output performance record
+    cout << "Sorted array in " << dur.count() << " microseconds\n";
+    FILE *file = fopen(TIMEREC, "a");
+    fprintf(file, "Sorted case #%d with %lu items in %ld microseconds with Merge\n",
+            casenum, CASE_ITEMS, dur.count());
+    if(file!=nullptr)
+        fclose(file);
+    return dur.count();
+}
 
 int main(void)
 {
@@ -134,11 +208,12 @@ int main(void)
     srand(time(0));                   // set random
     vector<vector<entry>> superarray; // all cases stored here
 
-    makeCases(CASES, superarray, f_Unsorted, "QUICK"); // create cases, provide file path for unsorted cases
+    makeCases(CASES, superarray, f_Unsorted, "MERGE"); // create cases, provide file path for unsorted cases
 
     for (int i = 0, c = 1; i < superarray.size(); i++, c++) // sort each case
-    {
-        auto duration = QuickSort(superarray[i], c); // returns runtime after sorting
+    {   //CHANGE THIS BLOCK///////////////////////////////////////////////////////
+        auto duration = MergeSort(superarray[i], c); // returns runtime after sorting
+        //////////////////////////////////////////////////////////////////////////
         fprintf(f_Sorted, "\nCase %d of %lu items finished in %lu microseconds\n", c, CASE_ITEMS, duration);
         for (int j = 0; j < CASE_ITEMS; j++) // output keys of sorted array
         {
@@ -162,8 +237,8 @@ void makeCases(int cases, vector<vector<entry>> &superarray, FILE *unsortedfile,
         for (int i = 0; i < CASE_ITEMS; i++) // create array with nodes
         {
             node *n = new node;
-            if (mode == "INSERTION") // generate key nums by mode
-                key = INSKEYS;
+            if (mode == "INSERTION" || mode == "MERGE") // generate key nums by mode
+                key = INSKEYS; //do worst case = reverse list
             else if (mode == "RANDOM")
                 key = RNGKEYS;
             else
