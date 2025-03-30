@@ -21,7 +21,7 @@ Merge Sort 的最壞情況數據是通過逆向模擬合併過程來產生的，
 | 5000 | 131192| 850  | 11597| 2353 | 13819|
 
 ## 5. 圖表分析
-（請插入測試結果的圖表來比較不同排序方法的效能）
+![image](https://github.com/Yangchenin41243245/Data_Structure_Homework_14_45/blob/main/pics/mermaid-ai-diagram-2025-03-29-231517.png)
 
 ## 6. C++ 程式碼
 
