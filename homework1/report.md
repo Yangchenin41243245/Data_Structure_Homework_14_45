@@ -27,6 +27,8 @@ Merge Sort（合併排序）在一般情況下的時間複雜度為 **O(n log n)
 
 ## 5. 圖表分析
 
+![image](https://github.com/Yangchenin41243245/Data_Structure_Homework_14_45/blob/main/pics/mermaid-ai-diagram-2025-03-29-231517.png)
+
 透過測試結果可以觀察到：
 - **Insertion Sort** 在小規模數據時（如 500 筆）運行速度尚可，但當數據量增加時，時間成長呈現 **O(n²)** 的趨勢，導致在 5000 筆數據時達到 **131192 微秒**，遠高於其他演算法。
 - **Quick Sort** 由於採用了「三數中值選取」的方式來選擇基準點（pivot），有效避免了劣化成 **O(n²)** 的情況，因此在各個測試數據量下均保持優異的表現。
