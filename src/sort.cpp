@@ -40,31 +40,35 @@ public:
     }
 
 private:
-    node *data;
+    node *data; //only includes an int atm
 };
 
 void makeCases(int, vector<vector<entry>> &, FILE *, string); // forward declare
 
 // sort a case of array with insertion
+void InsertionCore(entry *temp,vector<entry>&arr, int i) // core insertion sort function
+{
+    entry a = *temp; // create copy
+    int pos = i;
+    while(i >= 0 && a.key < arr[i].key)
+    {
+        arr[i + 1] = arr[i]; // shift the larger element to the right
+        i--; // move left in the array
+    }
+    arr[i+1] = a; // insert the entry at the correct position
+}
 // returns runtime in microseconds
 unsigned long InsertionSort(vector<entry> &arr, int casenum)
 {
     cout << "Start insertion sort\n";
     auto timer = high_resolution_clock::now();
-    for (long i = 0; i < arr.size(); i++)
+    for (int j = 2; j < arr.size();j++)
     {
-        long min = i;
-        for (long j = i + 1; j < arr.size(); j++) // get min key and swap then go forward and exclude sorted
-        {
-            if (arr[j].key < arr[min].key)
-            {
-                min = j;
-            }
-        }
-        swap(arr[i], arr[min]);
+        entry*temp = &arr[j];
+        InsertionCore(temp,arr,j-1); // core insertion sort function
     }
-    auto stop = high_resolution_clock::now();
-    auto dur = duration_cast<milliseconds>(stop - timer);
+        auto stop = high_resolution_clock::now();
+    auto dur = duration_cast<microseconds>(stop - timer);
     // output performance record
     cout << "Sorted array in " << dur.count() << " microseconds\n";
     FILE *file = fopen(TIMEREC, "a");
@@ -109,7 +113,7 @@ unsigned long QuickSort(vector<entry> &arr, int casenum) // provide arr and spec
     QuickSortCore(arr,0,arr.size()-1); //actual sort from 0 to n - 1
 
     auto stop = high_resolution_clock::now();
-    auto dur = duration_cast<milliseconds>(stop - timer);
+    auto dur = duration_cast<microseconds>(stop - timer);
     // output performance record
     cout << "Sorted array in " << dur.count() << " microseconds\n";
     FILE *file = fopen(TIMEREC, "a");
@@ -182,7 +186,7 @@ unsigned long MergeSort(vector<entry>&arr, int casenum) //run and record time
     arr = MergeCut(arr); // start sorting, assign sorted array back to arr
 
     auto stop = high_resolution_clock::now();
-    auto dur = duration_cast<milliseconds>(stop - timer);
+    auto dur = duration_cast<microseconds>(stop - timer);
     // output performance record
     cout << "Sorted array in " << dur.count() << " microseconds\n";
     FILE *file = fopen(TIMEREC, "a");
@@ -208,11 +212,11 @@ int main(void)
     srand(time(0));                   // set random
     vector<vector<entry>> superarray; // all cases stored here
 
-    makeCases(CASES, superarray, f_Unsorted, "MERGE"); // create cases, provide file path for unsorted cases
+    makeCases(CASES, superarray, f_Unsorted, "INSERTION"); // create cases, provide file path for unsorted cases
 
     for (int i = 0, c = 1; i < superarray.size(); i++, c++) // sort each case
     {   //CHANGE THIS BLOCK///////////////////////////////////////////////////////
-        auto duration = MergeSort(superarray[i], c); // returns runtime after sorting
+        auto duration = InsertionSort(superarray[i], c); // returns runtime after sorting
         //////////////////////////////////////////////////////////////////////////
         fprintf(f_Sorted, "\nCase %d of %lu items finished in %lu microseconds\n", c, CASE_ITEMS, duration);
         for (int j = 0; j < CASE_ITEMS; j++) // output keys of sorted array
