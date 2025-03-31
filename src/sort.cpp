@@ -55,7 +55,7 @@ void InsertionCore(entry *temp,vector<entry>&arr, int i) // core insertion sort 
         arr[i + 1] = arr[i]; // shift the larger element to the right
         i--; // move left in the array
     }
-    arr[i+1] = a; // insert the entry at the correct position
+    arr[i+1] = a; // insert entry
 }
 // returns runtime in microseconds
 unsigned long InsertionSort(vector<entry> &arr, int casenum)

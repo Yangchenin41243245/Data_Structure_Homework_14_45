@@ -79,22 +79,28 @@ private:
 };
 ```
 ```
+ void InsertionCore(entry *temp,vector<entry>&arr, int i) // core insertion sort function
+{
+    entry a = *temp; // create copy
+    int pos = i;
+    while(i >= 0 && a.key < arr[i].key)
+    {
+        arr[i + 1] = arr[i]; // shift the larger element to the right
+        i--; // move left in the array
+    }
+    arr[i+1] = a; // insert entry
+}
+```
+```
  cout << "Start insertion sort\n";
     auto timer = high_resolution_clock::now();
-    for (long i = 0; i < arr.size(); i++)
+    for (int j = 2; j < arr.size();j++)
     {
-        long min = i;
-        for (long j = i + 1; j < arr.size(); j++) // get min key and swap then go forward and exclude sorted
-        {
-            if (arr[j].key < arr[min].key)
-            {
-                min = j;
-            }
-        }
-        swap(arr[i], arr[min]);
+        entry*temp = &arr[j];
+        InsertionCore(temp,arr,j-1); // core insertion sort function
     }
-    auto stop = high_resolution_clock::now();
-    auto dur = duration_cast<milliseconds>(stop - timer);
+        auto stop = high_resolution_clock::now();
+    auto dur = duration_cast<microseconds>(stop - timer);
 ```
 ```
 void QuickSortCore(vector<entry>&arr,int left,int right)
