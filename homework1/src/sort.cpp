@@ -1,4 +1,3 @@
-
 #define _CRT_SECURE_NO_WARNINGS
 
 #include <iostream>
@@ -7,6 +6,7 @@
 #include <ctime>
 #include <cstdlib>
 #include <chrono>
+#include <random>
 
 using namespace std;
 using namespace std::chrono;
@@ -38,7 +38,7 @@ int partition(vector<int>& arr, int low, int high) {
     int pivot = medianOfThree(arr, low, high);
     int i = low - 1;
     for (int j = low; j < high; j++) {
-        if (arr[j] <= pivot) {
+        if (arr[j] < pivot) {
             i++;
             swap(arr[i], arr[j]);
         }
@@ -64,10 +64,17 @@ void mergeSort(vector<int>& arr) {
     int n = arr.size();
     vector<int> temp(n);
     for (int size = 1; size < n; size *= 2) {
-        for (int left = 0; left < n - size; left += 2 * size) {
-            int mid = left + size - 1;
+        for (int left = 0; left < n; left += 2 * size) {
+            int mid = min(left + size - 1, n - 1);
             int right = min(left + 2 * size - 1, n - 1);
-            merge(arr.begin() + left, arr.begin() + mid + 1, arr.begin() + mid + 1, arr.begin() + right + 1, temp.begin() + left);
+
+            int i = left, j = mid + 1, k = left;
+            while (i <= mid && j <= right) {
+                if (arr[i] <= arr[j]) temp[k++] = arr[i++];
+                else temp[k++] = arr[j++];
+            }
+            while (i <= mid) temp[k++] = arr[i++];
+            while (j <= right) temp[k++] = arr[j++];
         }
         arr = temp;
     }
@@ -105,16 +112,18 @@ vector<int> worstCaseInsertion(int n) {
 vector<int> randomPermutation(int n) {
     vector<int> arr(n);
     for (int i = 0; i < n; i++) arr[i] = i + 1;
-    random_shuffle(arr.begin(), arr.end());
+    random_device rd;
+    mt19937 g(rd());
+    shuffle(arr.begin(), arr.end(), g);
     return arr;
 }
 
 // Composite Sort
 void compositeSort(vector<int>& arr) {
     int n = arr.size();
-    if (n <= 20) insertionSort(arr);
-    else if (n <= 1000) quickSort(arr, 0, n - 1);
-    else mergeSort(arr);
+    if (n <= 50) insertionSort(arr);
+    else if (n <= 5000) quickSort(arr, 0, n - 1);
+    else heapSort(arr);
 }
 
 // Measure Execution Time
@@ -127,7 +136,7 @@ void measureTime(void (*sortFunc)(vector<int>&), vector<int> arr, string name) {
 }
 
 int main() {
-    vector<int> sizes = { 500, 1000, 2000, 3000, 4000, 5000 };
+    vector<int> sizes = { 500, 1000, 2000, 3000, 4000, 5000, 25000, 50000 };
     for (int n : sizes) {
         cout << "\nTesting n = " << n << "\n";
         vector<int> arr;
