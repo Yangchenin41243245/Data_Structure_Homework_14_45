@@ -197,6 +197,52 @@ unsigned long MergeSort(vector<entry>&arr, int casenum) //run and record time
     return dur.count();
 }
 
+void heapify(vector<entry>& arr, int n, int i) //check for largest root i until n
+{
+    int max = i; 
+    int left = 2 * i + 1; 
+    int right = 2 * i + 2;
+
+    if (left < n && arr[left].key > arr[max].key) //in range, child is larger violates max heap
+        max = left;
+
+    if (right < n && arr[right].key > arr[max].key) 
+        max = right;
+
+    if (max != i) // swap and continue heapifying if root is not largest
+    {
+        swap(arr[i], arr[max]);
+        heapify(arr, n, max); //redo on subtree
+    }
+}
+
+unsigned long HeapSort(vector<entry>&arr, int casenum)
+{
+    cout << "Start heap sort\n";
+    auto timer = high_resolution_clock::now(); // record run time dur
+    int n = arr.size(); // get size of array
+
+    for (int i = n / 2 - 1; i >= 0; i--) // build max heap
+        heapify(arr, n, i);
+
+    for (int i = n - 1; i > 0; i--) // extract elements from heap one by one
+    {
+        swap(arr[0], arr[i]); // swap root to end
+        heapify(arr, i, 0); // heapify from 0 to i (reduced size)
+    }
+
+    auto stop = high_resolution_clock::now();
+    auto dur = duration_cast<microseconds>(stop - timer);
+    // output performance record
+    cout << "Sorted array in " << dur.count() << " microseconds\n";
+    FILE *file = fopen(TIMEREC, "a");
+    fprintf(file, "Sorted case #%d with %lu items in %ld microseconds with Heap\n",
+            casenum, CASE_ITEMS, dur.count());
+    if(file!=nullptr)
+        fclose(file);
+    return dur.count();
+}
+
 int main(void)
 {
     remove(SORTED);
@@ -211,12 +257,12 @@ int main(void)
 
     srand(time(0));                   // set random
     vector<vector<entry>> superarray; // all cases stored here
-
-    makeCases(CASES, superarray, f_Unsorted, "INSERTION"); // create cases, provide file path for unsorted cases
-
+    //MAKE CASES HERE/////////////////////////////////////
+    makeCases(CASES, superarray, f_Unsorted, "HEAP"); // create cases, provide file path for unsorted cases
+    //////////////////////////////////////////////////////
     for (int i = 0, c = 1; i < superarray.size(); i++, c++) // sort each case
-    {   //CHANGE THIS BLOCK///////////////////////////////////////////////////////
-        auto duration = InsertionSort(superarray[i], c); // returns runtime after sorting
+    {   //CHANGE SORTING MODE///////////////////////////////////////////////////////
+        auto duration = HeapSort(superarray[i], c); // returns runtime after sorting
         //////////////////////////////////////////////////////////////////////////
         fprintf(f_Sorted, "\nCase %d of %lu items finished in %lu microseconds\n", c, CASE_ITEMS, duration);
         for (int j = 0; j < CASE_ITEMS; j++) // output keys of sorted array
