@@ -7,7 +7,7 @@
 using namespace std;
 using namespace std::chrono;
 
-#define CASE_ITEMS 15000 // number of items in each case
+#define CASE_ITEMS 1000 // number of items in each case
 #define CASES 10      // number of cases
 #define RNGKEYS rand() % CASE_ITEMS
 #define INSKEYS CASE_ITEMS - i // worst case for insertion sort
@@ -256,22 +256,45 @@ int main(void)
     FILE *f_Sorted = fopen(SORTED, "a");
 
     srand(time(0));                   // set random
-    vector<vector<entry>> superarray; // all cases stored here
+    vector<vector<entry>> superarray[4]; // all cases stored here
     //MAKE CASES HERE/////////////////////////////////////
-    makeCases(CASES, superarray, f_Unsorted, "HEAP"); // create cases, provide file path for unsorted cases
+    makeCases(CASES, superarray[0], f_Unsorted, "INSERTION"); 
+    makeCases(CASES, superarray[1], f_Unsorted, "QUICK"); 
+    makeCases(CASES, superarray[2], f_Unsorted, "MERGE"); 
+    makeCases(CASES, superarray[3], f_Unsorted, "HEAP"); // create cases, provide file path for unsorted cases
     //////////////////////////////////////////////////////
-    for (int i = 0, c = 1; i < superarray.size(); i++, c++) // sort each case
-    {   //CHANGE SORTING MODE///////////////////////////////////////////////////////
-        auto duration = HeapSort(superarray[i], c); // returns runtime after sorting
-        //////////////////////////////////////////////////////////////////////////
-        fprintf(f_Sorted, "\nCase %d of %lu items finished in %lu microseconds\n", c, CASE_ITEMS, duration);
-        for (int j = 0; j < CASE_ITEMS; j++) // output keys of sorted array
+    //SORT ALL/////////////////////////////////////////////////////////////////
+    for (int m = 0; m < 4;m++){
+        for (int i = 0, c = 1; i < superarray[m].size(); i++, c++) // sort each case c in superarray m
         {
-            superarray[i][j].outputkey(f_Sorted); // i for array, j for entry
-        }
-        cout << "output sorted array to file" << SORTED << endl;
-    }
+            auto duration = 0;
 
+            switch (m)
+            {
+            case 0:                                            // Insertion sort
+                duration = InsertionSort(superarray[m][i], c); // returns runtime after sorting
+                break;
+            case 1:                                        // Quick sort
+                duration = QuickSort(superarray[m][i], c); // returns runtime after sorting
+                break;
+            case 2:                                        // Merge sort
+                duration = MergeSort(superarray[m][i], c); // returns runtime after sorting
+                break;
+            case 3:                                       // Heap sort
+                duration = HeapSort(superarray[m][i], c); // returns runtime after sorting
+                break;
+            default:
+                break;
+            }
+            fprintf(f_Sorted, "\nCase %d of %lu items finished in %lu microseconds\n", c, CASE_ITEMS, duration);
+            for (int j = 0; j < CASE_ITEMS; j++) // output keys of sorted array
+            {
+                superarray[m][i][j].outputkey(f_Sorted); // i for array, j for entry
+            }
+            cout << "output sorted array to file" << SORTED << endl;
+        }
+    }
+    /////////////////////////////////////////////////////////////////////////////////
     fclose(f_Unsorted);
     fclose(f_Sorted);
     return 0;
