@@ -50,6 +50,19 @@ if (mode == "INSERTION" || mode == "QUICK" || mode == "MERGE")
 
 ![image](https://github.com/Yangchenin41243245/Data_Structure_Homework_14_45/blob/main/pics/pic01.png)
 
+### 最壞執行時間表格
+
+| 資料數量 (n) | 插入排序 (Insertion) | 快速排序 (Quick) | 合併排序 (Merge) | 堆積排序 (Heap) |
+|--------|-----------------|-----------------|-----------------|-----------------|
+| 500    | 623             | 155             | 2643            | 101             |
+| 1000   | 2478            | 792             | 5206            | 165             |
+| 2000   | 7742            | 2738            | 14552           | 418             |
+| 3000   | 17826           | 5405            | 19880           | 754             |
+| 4000   | 26746           | 9366            | 31271           | 790             |
+| 5000   | 47480           | 18947           | 30609           | 946             |
+
+![image](https://github.com/Yangchenin41243245/Data_Structure_Homework_14_45/blob/main/pics/pic02.png)
+
 ### 時間複雜度趨勢分析
 
 - 插入排序：明顯呈現 $O(n^2)$ 成長，效能下降快速。
