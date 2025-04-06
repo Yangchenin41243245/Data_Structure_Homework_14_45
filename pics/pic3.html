@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Sorting Algorithm Performance</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    body {
+      font-family: sans-serif;
+      padding: 20px;
+    }
+    canvas {
+      max-width: 1000px;
+    }
+  </style>
+</head>
+<body>
+
+  <h2>Sorting Algorithm Performance (Average Time in Microseconds)</h2>
+  <canvas id="sortChart"></canvas>
+
+  <script>
+    const ctx = document.getElementById('sortChart').getContext('2d');
+
+    const sortChart = new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels: [500, 1000, 2000, 3000, 4000, 5000, 10000], // 更新為表格中的所有資料量
+        datasets: [
+          {
+            label: 'Insertion Sort',
+            data: [422.2, 1652.7, 6228.4, 15071.7, 23817.7, 38788.5, 144778.2], // 平均值數據
+            borderColor: 'rgba(255, 99, 132, 1)',
+            backgroundColor: 'rgba(255, 99, 132, 0.2)',
+            tension: 0.3
+          },
+          {
+            label: 'Quick Sort',
+            data: [151.4, 609.3, 2274.2, 5574.6, 8881.6, 14673.1, 53740.3], // 平均值數據
+            borderColor: 'rgba(54, 162, 235, 1)',
+            backgroundColor: 'rgba(54, 162, 235, 0.2)',
+            tension: 0.3
+          },
+          {
+            label: 'Merge Sort',
+            data: [1963.9, 4303, 11988.1, 17596.2, 24277.7, 31088.3, 47289.1], // 平均值數據
+            borderColor: 'rgba(75, 192, 192, 1)',
+            backgroundColor: 'rgba(75, 192, 192, 0.2)',
+            tension: 0.3
+          },
+          {
+            label: 'Heap Sort',
+            data: [72.9, 144, 346.8, 572.8, 739.1, 952.2, 2221.4], // 平均值數據
+            borderColor: 'rgba(255, 206, 86, 1)',
+            backgroundColor: 'rgba(255, 206, 86, 0.2)',
+            tension: 0.3
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        plugins: {
+          title: {
+            display: true,
+            text: 'Sorting Algorithm Performance (Average Time in Microseconds)', // 修改為平均值標題
+            font: { size: 18 }
+          }
+        },
+        scales: {
+          x: {
+            title: {
+              display: true,
+              text: 'Number of Elements'
+            }
+          },
+          y: {
+            title: {
+              display: true,
+              text: 'Time (μs)'
+            },
+            beginAtZero: true
+          }
+        }
+      }
+    });
+  </script>
+
+</body>
+</html>

@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Sorting Algorithm Performance</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    body {
+      font-family: sans-serif;
+      padding: 20px;
+    }
+    canvas {
+      max-width: 1000px;
+    }
+  </style>
+</head>
+<body>
+
+  <h2>Sorting Algorithm Performance (Worst-case time in Microseconds)</h2>
+  <canvas id="sortChart"></canvas>
+
+  <script>
+    const ctx = document.getElementById('sortChart').getContext('2d');
+
+    const sortChart = new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels: [500, 1000, 2000, 3000, 4000, 5000, 10000],
+        datasets: [
+          {
+            label: 'Insertion Sort',
+            data: [623, 2478, 7742, 17826, 26746, 47480, 150250],
+            borderColor: 'rgba(255, 99, 132, 1)',
+            backgroundColor: 'rgba(255, 99, 132, 0.2)',
+            tension: 0.3
+          },
+          {
+            label: 'Quick Sort',
+            data: [155, 792, 2738, 5405, 9366, 18947, 55224],
+            borderColor: 'rgba(54, 162, 235, 1)',
+            backgroundColor: 'rgba(54, 162, 235, 0.2)',
+            tension: 0.3
+          },
+          {
+            label: 'Merge Sort',
+            data: [2643, 5206, 14552, 19880, 31271, 30609, 71520],
+            borderColor: 'rgba(75, 192, 192, 1)',
+            backgroundColor: 'rgba(75, 192, 192, 0.2)',
+            tension: 0.3
+          },
+          {
+            label: 'Heap Sort',
+            data: [101, 165, 418, 754, 790, 946, 2422],
+            borderColor: 'rgba(255, 206, 86, 1)',
+            backgroundColor: 'rgba(255, 206, 86, 0.2)',
+            tension: 0.3
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        plugins: {
+          title: {
+            display: true,
+            text: 'Sorting Algorithm Performance (Worst-case time in Microseconds)',
+            font: { size: 18 }
+          }
+        },
+        scales: {
+          x: {
+            title: {
+              display: true,
+              text: 'Number of Elements'
+            }
+          },
+          y: {
+            title: {
+              display: true,
+              text: 'Time (μs)'
+            },
+            beginAtZero: true
+          }
+        }
+      }
+    });
+  </script>
+
+</body>
+</html>
