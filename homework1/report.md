@@ -48,6 +48,8 @@ if (mode == "INSERTION" || mode == "QUICK" || mode == "MERGE")
 | 4000         | 23682.4               | 8861.6            | 24187.3          | 739.1           |
 | 5000         | 38788.5               | 14426.6           | 30609.3          | 946.4           |
 
+![image](https://github.com/Yangchenin41243245/Data_Structure_Homework_14_45/blob/main/pics/pic01.png)
+
 ### 時間複雜度趨勢分析
 
 - 插入排序：明顯呈現 $O(n^2)$ 成長，效能下降快速。
