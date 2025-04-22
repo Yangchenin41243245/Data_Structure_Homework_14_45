@@ -7,7 +7,7 @@
 using namespace std;
 using namespace std::chrono;
 
-#define CASE_ITEMS 20 // number of items in each case
+#define CASE_ITEMS 10 // number of items in each case
 #define CASES 5      // number of cases
 #define RNGKEYS rand() % CASE_ITEMS
 #define INSKEYS CASE_ITEMS - i // worst case for insertion sort
@@ -212,7 +212,7 @@ result MergeSort(vector<entry>arr, int casenum) //run and record time
     return r;
 }
 
-void heapify(vector<entry> arr, int n, int i) //check for largest root i until n
+vector<entry> heapify(vector<entry> arr, int n, int i) //check for largest root i until n
 {
     int max = i; 
     int left = 2 * i + 1; 
@@ -227,8 +227,9 @@ void heapify(vector<entry> arr, int n, int i) //check for largest root i until n
     if (max != i) // swap and continue heapifying if root is not largest
     {
         swap(arr[i], arr[max]);
-        heapify(arr, n, max); //redo on subtree
+        return heapify(arr, n, max); //redo on subtree
     }
+    else return arr;
 }
 
 result HeapSort(vector<entry>arr, int casenum)
@@ -240,12 +241,12 @@ result HeapSort(vector<entry>arr, int casenum)
     int n = arr.size(); // get size of array
 
     for (int i = n / 2 - 1; i >= 0; i--) // build max heap
-        heapify(arr, n, i);
+        arr = heapify(arr, n, i);
 
     for (int i = n - 1; i > 0; i--) // extract elements from heap one by one
     {
         swap(arr[0], arr[i]); // swap root to end
-        heapify(arr, i, 0); // heapify from 0 to i (reduced size)
+        arr = heapify(arr, i, 0); // heapify from 0 to i (reduced size)
     }
 
     auto stop = high_resolution_clock::now();
