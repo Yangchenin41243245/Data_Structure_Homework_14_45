@@ -7,7 +7,7 @@
 using namespace std;
 using namespace std::chrono;
 
-#define CASE_ITEMS 5000 // number of items in each case
+#define CASE_ITEMS 1000 // number of items in each case
 #define CASES 10      // number of cases
 #define RNGKEYS rand() % CASE_ITEMS
 #define INSKEYS CASE_ITEMS - i // worst case for insertion sort
@@ -46,7 +46,7 @@ private:
 void makeCases(int, vector<vector<entry>> &, FILE *, string); // forward declare
 
 // sort a case of array with insertion
-void InsertionCore(entry *temp,vector<entry>&arr, int i) // core insertion sort function
+void InsertionCore(entry *temp,vector<entry>arr, int i) // core insertion sort function
 {
     entry a = *temp; // create copy
     int pos = i;
@@ -58,7 +58,7 @@ void InsertionCore(entry *temp,vector<entry>&arr, int i) // core insertion sort 
     arr[i+1] = a; // insert entry
 }
 // returns runtime in microseconds
-unsigned long InsertionSort(vector<entry> &arr, int casenum)
+unsigned long InsertionSort(vector<entry> arr, int casenum)
 {
     cout << "Start insertion sort\n";
     auto timer = high_resolution_clock::now();
@@ -81,7 +81,7 @@ unsigned long InsertionSort(vector<entry> &arr, int casenum)
     return dur.count();
 }
 
-void QuickSortCore(vector<entry>&arr,int left,int right)
+void QuickSortCore(vector<entry>arr,int left,int right)
 {
     
     // Start sort
@@ -106,7 +106,7 @@ void QuickSortCore(vector<entry>&arr,int left,int right)
         }
 }
 
-unsigned long QuickSort(vector<entry> &arr, int casenum) // provide arr and specify the case num for print
+unsigned long QuickSort(vector<entry> arr, int casenum) // provide arr and specify the case num for print
 {                                                        // returns run time in microseconds
     cout << "Start quick sort\n";
     auto timer = high_resolution_clock::now(); // record run time dur
@@ -124,7 +124,7 @@ unsigned long QuickSort(vector<entry> &arr, int casenum) // provide arr and spec
     return dur.count();
 }
 
-vector<entry> MergeCore(vector<entry>& a, vector<entry>& b) // core sorting func, uses iterators
+vector<entry> MergeCore(vector<entry> a, vector<entry> b) // core sorting func, uses iterators
 {
     vector<entry> c;
     c.reserve(a.size() + b.size()); // reserve memory
@@ -179,7 +179,7 @@ vector<entry> MergeCut(vector<entry>arr) //cut array func
     return MergeCore(left, right); //run sorting and join sorted parts (bottom layer: 1+1=2)
 }
 
-unsigned long MergeSort(vector<entry>&arr, int casenum) //run and record time
+unsigned long MergeSort(vector<entry>arr, int casenum) //run and record time
 {
     cout << "Start merge sort\n";
     auto timer = high_resolution_clock::now(); // record run time dur
@@ -197,7 +197,7 @@ unsigned long MergeSort(vector<entry>&arr, int casenum) //run and record time
     return dur.count();
 }
 
-void heapify(vector<entry>& arr, int n, int i) //check for largest root i until n
+void heapify(vector<entry> arr, int n, int i) //check for largest root i until n
 {
     int max = i; 
     int left = 2 * i + 1; 
@@ -216,7 +216,7 @@ void heapify(vector<entry>& arr, int n, int i) //check for largest root i until 
     }
 }
 
-unsigned long HeapSort(vector<entry>&arr, int casenum)
+unsigned long HeapSort(vector<entry>arr, int casenum)
 {
     cout << "Start heap sort\n";
     auto timer = high_resolution_clock::now(); // record run time dur
