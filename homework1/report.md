@@ -59,7 +59,7 @@ if (mode == "INSERTION" || mode == "QUICK" || mode == "MERGE")
 | 5000         | 38788.5               | 14426.6           | 30609.3          | 946.4           |
 | 10000        | 144778.2              | 53740.3           | 47289.1          | 2221.4          |
 
-![image](https://github.com/Yangchenin41243245/Data_Structure_Homework_14_45/blob/main/src/pics/pic03.png)
+![image](https://github.com/Yangchenin41243245/Data_Structure_Homework_14_45/blob/main/homework1/src/pics/pic03.png)
 
 ### 最壞執行時間表格
 
@@ -73,7 +73,7 @@ if (mode == "INSERTION" || mode == "QUICK" || mode == "MERGE")
 | 5000   | 47480           | 18947           | 30609           | 946             |
 | 10000  | 150250          | 55224           | 71520           | 2422            |
 
-![image](https://github.com/Yangchenin41243245/Data_Structure_Homework_14_45/blob/main/src/pics/pic04.png)
+![image](https://github.com/Yangchenin41243245/Data_Structure_Homework_14_45/blob/main/homework1/src/pics/pic04.png)
 
 ### 時間複雜度趨勢分析
 
