@@ -7,7 +7,7 @@
 using namespace std;
 using namespace std::chrono;
 
-#define CASE_ITEMS 1000 // number of items in each case
+#define CASE_ITEMS 2000 // number of items in each case
 #define CASES 10      // number of cases
 #define RNGKEYS rand() % CASE_ITEMS
 #define INSKEYS CASE_ITEMS - i // worst case for insertion sort
