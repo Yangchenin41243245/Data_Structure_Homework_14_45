@@ -7,8 +7,8 @@
 using namespace std;
 using namespace std::chrono;
 
-#define CASE_ITEMS 2000 // number of items in each case
-#define CASES 10      // number of cases
+#define CASE_ITEMS 5 // number of items in each case
+#define CASES 5      // number of cases
 #define RNGKEYS rand() % CASE_ITEMS
 #define INSKEYS CASE_ITEMS - i // worst case for insertion sort
 #define UNSORTED "./tosort.txt"
@@ -43,33 +43,40 @@ private:
     node *data; //only includes an int atm
 };
 
+struct result
+{
+    int64_t timer;
+    vector<entry> arr2;
+};
+
 void makeCases(int, vector<vector<entry>> &, FILE *, string); // forward declare
 
-// sort a case of array with insertion
-void InsertionCore(entry *temp,vector<entry>arr, int i) // core insertion sort function
+
+result InsertionSort(vector<entry> arr, int casenum)
 {
-    entry a = *temp; // create copy
-    int pos = i;
-    while(i >= 0 && a.key < arr[i].key)
-    {
-        arr[i + 1] = arr[i]; // shift the larger element to the right
-        i--; // move left in the array
-    }
-    arr[i+1] = a; // insert entry
-}
-// returns runtime in microseconds
-unsigned long InsertionSort(vector<entry> arr, int casenum)
-{
+    result r;
+
     cout << "Start insertion sort\n";
     auto timer = high_resolution_clock::now();
-    for (int j = 2; j < arr.size();j++)
+    
+    for (int i = 1; i < arr.size(); i++) // start from 1, first element is sorted
     {
-        entry*temp = &arr[j];
-        InsertionCore(temp,arr,j-1); // core insertion sort function
+        entry temp = arr[i]; // store current element
+        int j = i - 1;      // compare with previous elements
+
+        while (j >= 0 && temp.key < arr[j].key)
+        {
+            arr[j + 1] = arr[j]; // shift element to the right
+            j--;
+        }
+        arr[j + 1] = temp;
     }
-        auto stop = high_resolution_clock::now();
+    
+    auto stop = high_resolution_clock::now();
     auto dur = duration_cast<microseconds>(stop - timer);
-    // output performance record
+    r.arr2 = arr; // sorted array to result struct
+    r.timer = dur.count(); // record time in microseconds
+
     cout << "Sorted array in " << dur.count() << " microseconds\n";
     FILE *file = fopen(TIMEREC, "a");
     fprintf(file, "Sorted case #%d with %lu items in %ld microseconds with Insertion\n",
@@ -78,7 +85,7 @@ unsigned long InsertionSort(vector<entry> arr, int casenum)
     {
         fclose(file);
     }
-    return dur.count();
+    return r; // return result struct
 }
 
 void QuickSortCore(vector<entry>arr,int left,int right)
@@ -106,14 +113,20 @@ void QuickSortCore(vector<entry>arr,int left,int right)
         }
 }
 
-unsigned long QuickSort(vector<entry> arr, int casenum) // provide arr and specify the case num for print
-{                                                        // returns run time in microseconds
+result QuickSort(vector<entry> arr, int casenum) // provide arr and specify the case num for print
+{
+    result r;
+   
     cout << "Start quick sort\n";
     auto timer = high_resolution_clock::now(); // record run time dur
     QuickSortCore(arr,0,arr.size()-1); //actual sort from 0 to n - 1
 
     auto stop = high_resolution_clock::now();
     auto dur = duration_cast<microseconds>(stop - timer);
+
+    r.arr2 = arr; // sorted array to result struct
+    r.timer = dur.count();
+
     // output performance record
     cout << "Sorted array in " << dur.count() << " microseconds\n";
     FILE *file = fopen(TIMEREC, "a");
@@ -121,7 +134,7 @@ unsigned long QuickSort(vector<entry> arr, int casenum) // provide arr and speci
             casenum, CASE_ITEMS, dur.count());
     if(file!=nullptr)
         fclose(file);
-    return dur.count();
+    return r;
 }
 
 vector<entry> MergeCore(vector<entry> a, vector<entry> b) // core sorting func, uses iterators
@@ -179,22 +192,27 @@ vector<entry> MergeCut(vector<entry>arr) //cut array func
     return MergeCore(left, right); //run sorting and join sorted parts (bottom layer: 1+1=2)
 }
 
-unsigned long MergeSort(vector<entry>arr, int casenum) //run and record time
+result MergeSort(vector<entry>arr, int casenum) //run and record time
 {
+    result r;
+
     cout << "Start merge sort\n";
     auto timer = high_resolution_clock::now(); // record run time dur
     arr = MergeCut(arr); // start sorting, assign sorted array back to arr
 
     auto stop = high_resolution_clock::now();
     auto dur = duration_cast<microseconds>(stop - timer);
-    // output performance record
+
+    r.arr2 = arr; // sorted array to result struct
+    r.timer = dur.count(); // record time in microseconds
+
     cout << "Sorted array in " << dur.count() << " microseconds\n";
     FILE *file = fopen(TIMEREC, "a");
     fprintf(file, "Sorted case #%d with %lu items in %ld microseconds with Merge\n",
             casenum, CASE_ITEMS, dur.count());
     if(file!=nullptr)
         fclose(file);
-    return dur.count();
+    return r;
 }
 
 void heapify(vector<entry> arr, int n, int i) //check for largest root i until n
@@ -216,8 +234,10 @@ void heapify(vector<entry> arr, int n, int i) //check for largest root i until n
     }
 }
 
-unsigned long HeapSort(vector<entry>arr, int casenum)
+result HeapSort(vector<entry>arr, int casenum)
 {
+    result r;
+
     cout << "Start heap sort\n";
     auto timer = high_resolution_clock::now(); // record run time dur
     int n = arr.size(); // get size of array
@@ -233,14 +253,17 @@ unsigned long HeapSort(vector<entry>arr, int casenum)
 
     auto stop = high_resolution_clock::now();
     auto dur = duration_cast<microseconds>(stop - timer);
-    // output performance record
+
+    r.arr2 = arr;          // sorted array to result struct
+    r.timer = dur.count(); // record time in microseconds
+    
     cout << "Sorted array in " << dur.count() << " microseconds\n";
     FILE *file = fopen(TIMEREC, "a");
     fprintf(file, "Sorted case #%d with %lu items in %ld microseconds with Heap\n",
             casenum, CASE_ITEMS, dur.count());
     if(file!=nullptr)
         fclose(file);
-    return dur.count();
+    return r;
 }
 
 int main(void)
@@ -257,6 +280,7 @@ int main(void)
 
     srand(time(0)); // set random
     vector<vector<entry>> superarray[4]; // all cases stored here
+    result result;
     //MAKE CASES HERE/////////////////////////////////////
     makeCases(CASES, superarray[0], f_Unsorted, "INSERTION"); 
     makeCases(CASES, superarray[1], f_Unsorted, "QUICK"); 
@@ -264,33 +288,32 @@ int main(void)
     makeCases(CASES, superarray[3], f_Unsorted, "HEAP"); // create cases, provide file path for unsorted cases
     //////////////////////////////////////////////////////
     //SORT ALL/////////////////////////////////////////////////////////////////
-    for (int m = 0; m < 4;m++){ //type m
-        for (int i = 0, c = 1; i < superarray[m].size(); i++, c++) // sort case c in array i in SA of type m
+    for (int type = 0; type < 4;type++){ //type m
+        for (int i = 0, caseNum = 1; i < superarray[type].size(); i++, caseNum++) // sort case c in array i in SA of type m
         {
             auto duration = 0;
-
-            switch (m)
+            switch (type)
             {
             case 0:                                            
-                duration = InsertionSort(superarray[m][i], c); 
+                result = InsertionSort(superarray[type][i], caseNum); 
                 break;
             case 1:                                        
-                duration = QuickSort(superarray[m][i], c); 
+                result = QuickSort(superarray[type][i], caseNum); 
                 break;
             case 2:                                        
-                duration = MergeSort(superarray[m][i], c); 
+                result = MergeSort(superarray[type][i], caseNum); 
                 break;
             case 3:                                     
-                duration = HeapSort(superarray[m][i], c);  
+                result = HeapSort(superarray[type][i], caseNum);  
                 break;
             default:
                 break;
             }
             //OUTPUT TIME
-            fprintf(f_Sorted, "\nCase %d of %lu items finished in %lu microseconds\n", c, CASE_ITEMS, duration);
+            fprintf(f_Sorted, "\nCase %d of %lu items finished in %lu microseconds\n", caseNum, CASE_ITEMS, duration);
             for (int j = 0; j < CASE_ITEMS; j++) // output keys of sorted array
             {
-                superarray[m][i][j].outputkey(f_Sorted); // i for array, j for entry
+                result.arr2[j].outputkey(f_Sorted); // i for array, j for entry
             }
             cout << "output sorted array to file" << SORTED << endl;
         }
