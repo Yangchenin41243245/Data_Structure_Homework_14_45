@@ -7,7 +7,7 @@
 using namespace std;
 using namespace std::chrono;
 
-#define CASE_ITEMS 5 // number of items in each case
+#define CASE_ITEMS 20 // number of items in each case
 #define CASES 5      // number of cases
 #define RNGKEYS rand() % CASE_ITEMS
 #define INSKEYS CASE_ITEMS - i // worst case for insertion sort
@@ -88,29 +88,26 @@ result InsertionSort(vector<entry> arr, int casenum)
     return r; // return result struct
 }
 
-void QuickSortCore(vector<entry>arr,int left,int right)
+vector<entry> QuickSortCore(vector<entry> arr, int left, int right)
 {
-    
-    // Start sort
     if (left < right)
     {
-        entry *pivot = &arr[left];
+        entry pivot = arr[left]; // worst pivot always largest
         int i = left, j = right + 1;
         do
         {
-            do
-                i++;
-            while (arr[i].key < pivot->key); // left push towards mid
-            do
-                j--;
-            while (arr[j].key > pivot->key);
-            if (i < j)
-                swap(arr[i], arr[j]); // found both elements belonging to other side
+            do i++; while ( arr[i].key < pivot.key); // left push towards mid
+            do j--; while (arr[j].key > pivot.key);
+            if (i < j) swap(arr[i], arr[j]); // found both elements belonging to other side
         } while (i < j);
-        swap(arr[left], arr[j]); // swap pivot with last element of left partition
-        QuickSortCore(arr, left, j - 1);  // left partition
-        QuickSortCore(arr, j + 1, right); // right partition
-        }
+        swap(arr[left], arr[j]); // swap pivot with j
+
+        arr = QuickSortCore(arr, left, j - 1); //new instance of left part arr
+        arr = QuickSortCore(arr, j + 1, right);
+
+        
+    }
+    return arr;
 }
 
 result QuickSort(vector<entry> arr, int casenum) // provide arr and specify the case num for print
@@ -119,12 +116,12 @@ result QuickSort(vector<entry> arr, int casenum) // provide arr and specify the 
    
     cout << "Start quick sort\n";
     auto timer = high_resolution_clock::now(); // record run time dur
-    QuickSortCore(arr,0,arr.size()-1); //actual sort from 0 to n - 1
+    r.arr2 = QuickSortCore(arr,0,arr.size()-1); //actual sort from 0 to n - 1
 
     auto stop = high_resolution_clock::now();
     auto dur = duration_cast<microseconds>(stop - timer);
 
-    r.arr2 = arr; // sorted array to result struct
+    //arr2 already stored, skip
     r.timer = dur.count();
 
     // output performance record
@@ -294,17 +291,21 @@ int main(void)
             auto duration = 0;
             switch (type)
             {
-            case 0:                                            
-                result = InsertionSort(superarray[type][i], caseNum); 
+            case 0:
+                result = InsertionSort(superarray[type][i], caseNum);
+                duration = result.timer;
                 break;
-            case 1:                                        
-                result = QuickSort(superarray[type][i], caseNum); 
+            case 1:
+                result = QuickSort(superarray[type][i], caseNum);
+                duration = result.timer;
                 break;
-            case 2:                                        
-                result = MergeSort(superarray[type][i], caseNum); 
+            case 2:
+                result = MergeSort(superarray[type][i], caseNum);
+                duration = result.timer;
                 break;
-            case 3:                                     
-                result = HeapSort(superarray[type][i], caseNum);  
+            case 3:
+                result = HeapSort(superarray[type][i], caseNum);
+                duration = result.timer;
                 break;
             default:
                 break;
