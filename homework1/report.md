@@ -12,38 +12,66 @@
 ### 申論及開發報告
 
 ---
+
 ## 解題說明
-### Heap Sort 最壞情況測試資料的隨機排列方式
-為了模擬 Heap Sort 的最壞情況，本程式在 `makeCases()` 函數中對 HEAP 模式使用了 **隨機排列【Random Permutation】** 方式生成輸入資料：
 
-```cpp
-for (int i = CASE_ITEMS - 1; i >= 2; i--)
-{
-    int j = rand() % i + 1;
-    swap(array[i], array[j]);
-}
-```
+本作業旨在實作與分析四種排序演算法的效能，並設計一個根據輸入資料特性選擇最適合排序法的綜合排序函式（Composite Sort Function）。作業核心在於針對不同輸入資料大小與特性（最壞情況與平均情況）進行排序效能測試，並比較各排序法在時間與記憶體使用上的表現。
 
-這段程式碼等像於 **Fisher-Yates shuffle** 隨機打亂法，使輸入數列在統計上接近 Heap Sort 的最壞或平均情況。
+本次實作包含以下四種排序方法：
 
----
+1. **Insertion Sort**  
+   逐一將元素插入已排序好的子陣列，最壞情況為反向排序。
 
-## Merge Sort 最壞情況測試資料生成方式
+2. **Quick Sort**（使用 median-of-three 中值選擇 pivot）  
+   採用分治法將資料切分並遞迴排序，最壞情況發生於切分極不平均時。
 
-Merge Sort 的最壞情況並不會明顯受特定輸入順序影響，因此程式中使用了 **遞減排序【由大至小】** 的資料生成方式作為最壞情況的模擬輸入：
+3. **Merge Sort**（使用迭代式實作）  
+   將資料拆分後合併排序，最壞情況相對穩定，時間複雜度為 O(n log n)。
 
-```cpp
-if (mode == "INSERTION" || mode == "QUICK" || mode == "MERGE")
-    key = CASE_ITEMS - i;
-```
+4. **Heap Sort**  
+   利用最大堆結構，每次將最大值移至尾端排序，對於初始排列較亂的資料效能佳。
 
-這樣生成的輸入數列為遞減序列，例如 [5000, 4999, 4998, ..., 1]，對 Merge Sort 難以顯著抽慮效能，但可視為統一的 worst-case 測試資料來源。
+透過 `std::chrono` 計時與 Windows API 測量記憶體使用量，將各排序法在不同 `n` 值下的效能進行數據分析與圖表視覺化，最終統整出各排序法的適用情境與建議使用範圍。
 
 ---
 
 ## 時鐘精度
 
-本程式使用 C++ 的 `<chrono>` 標準函式庫中的 `high_resolution_clock` 進行計時，使用 `duration_cast<microseconds>` 將執行時間換算為「微秒」(1 微秒 = 0.000001 秒)。提供足夠高的解析度，以正確測量常見排序演算法在中等規模資料量（如 5000 筆資料）下的執行效能。
+本次作業中，排序演算法的效能主要透過時間消耗（microseconds）進行衡量。為了準確記錄各排序方法的執行時間，我們使用 C++ 標準函式庫中的 `<chrono>` 模組中的 `std::chrono::high_resolution_clock` 作為計時工具，其精度可達微秒等級，適合用於微小時間單位的效能分析。
+
+### 使用方式
+
+計時範例如下：
+
+```cpp
+auto start = chrono::high_resolution_clock::now();
+// 排序函式執行
+auto end = chrono::high_resolution_clock::now();
+auto duration = chrono::duration_cast<chrono::microseconds>(end - start);
+```
+
+透過 `chrono::duration_cast` 可精確取得兩個時間點之間的間隔（此處為微秒）。
+
+### 測量誤差與處理方式
+
+由於在小筆數資料（如 n = 500）時，排序執行時間可能低於計時器可穩定測量的範圍，導致計時結果為 0 或波動大。為解決此問題，採用以下策略：
+
+- **重複執行多次後取平均時間**，以降低測量誤差。例如對某個排序函式執行 1000 次並除以總次數：
+  
+  ```cpp
+  int repeat = 1000;
+  auto start = chrono::high_resolution_clock::now();
+  for (int i = 0; i < repeat; ++i)
+      yourSortFunction(arr);
+  auto end = chrono::high_resolution_clock::now();
+  auto avg_duration = chrono::duration_cast<chrono::microseconds>(end - start).count() / repeat;
+  ```
+
+- 此外，在正式測試中，我們確保對每組測資僅進行一次排序測試（不重複），以模擬實際使用情境。當發現個別排序法耗時極短時，再單獨進行多次測量以取得更精確數據。
+
+### 實驗觀察
+
+經過測試發現，對於筆數小於 1000 的資料排序，Insertion Sort 執行時間可能會出現 0 μs 的情形。透過上述方法可有效改善這一問題，使測量更為穩定與可信。
 
 ---
 
