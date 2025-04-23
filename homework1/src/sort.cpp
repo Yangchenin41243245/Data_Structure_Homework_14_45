@@ -10,7 +10,7 @@
 using namespace std;
 //using namespace std::chrono;
 
-#define CASE_ITEMS 100 // number of items in each case
+#define CASE_ITEMS 6000 // number of items in each case
 #define CASES 5      // number of cases
 #define RNGKEYS rand() % CASE_ITEMS
 #define INSKEYS CASE_ITEMS - i // worst case for insertion sort
@@ -54,7 +54,7 @@ struct result
 
 void makeCases(int, vector<vector<entry>> &, FILE *, string); // forward declare
 
-string printMem(int state)
+string printMem(int state) //input 0 for initial mem usage, 1 for final peak mem usage
 {
     PROCESS_MEMORY_COUNTERS memInfo;
     GetProcessMemoryInfo(GetCurrentProcess(), &memInfo, sizeof(memInfo));
@@ -100,10 +100,10 @@ result InsertionSort(vector<entry> arr, int casenum)
 
     cout << "Sorted array in " << dur.count() << " microseconds\n";
     cout << recMem_Fin << endl;
-    
+
     // output performance record
     fprintf(file, "Sorted case #%d with %lu items in %ld microseconds with Insertion\n[Final] %s\n",
-            casenum, CASE_ITEMS, dur.count(), recMem_Fin.c_str()); // output performance record
+            casenum, CASE_ITEMS, dur.count(), recMem_Fin.c_str());
     if (file != nullptr)
     {
         fclose(file);
@@ -328,30 +328,27 @@ int main(void)
     //////////////////////////////////////////////////////
     //SORT ALL/////////////////////////////////////////////////////////////////
     for (int type = 0; type < 4;type++){ //type m
-        for (int i = 0, caseNum = 1; i < superarray[type].size(); i++, caseNum++) // sort case c in array i in SA of type m
+        for (int i = 0, caseNum = 1; i < superarray[type].size(); i++, caseNum++) // SA of type m with i cases
         {
             auto duration = 0;
             switch (type)
             {
             case 0:
                 result = InsertionSort(superarray[type][i], caseNum);
-                duration = result.timer;
                 break;
             case 1:
                 result = QuickSort(superarray[type][i], caseNum);
-                duration = result.timer;
                 break;
             case 2:
                 result = MergeSort(superarray[type][i], caseNum);
-                duration = result.timer;
                 break;
             case 3:
                 result = HeapSort(superarray[type][i], caseNum);
-                duration = result.timer;
                 break;
             default:
                 break;
             }
+            duration = result.timer; // get duration from result struct
             //OUTPUT TIME
             fprintf(f_Sorted, "\nCase %d of %lu items finished in %lu microseconds\n", caseNum, CASE_ITEMS, duration);
             for (int j = 0; j < CASE_ITEMS; j++) // output keys of sorted array
