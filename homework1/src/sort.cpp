@@ -4,10 +4,13 @@
 #include <ctime>
 #include <cstdlib>
 #include <chrono>
+#include <windows.h>
+#include <psapi.h>
+#pragma comment( lib, "psapi.lib" )
 using namespace std;
-using namespace std::chrono;
+//using namespace std::chrono;
 
-#define CASE_ITEMS 10000 // number of items in each case
+#define CASE_ITEMS 100 // number of items in each case
 #define CASES 5      // number of cases
 #define RNGKEYS rand() % CASE_ITEMS
 #define INSKEYS CASE_ITEMS - i // worst case for insertion sort
@@ -51,14 +54,31 @@ struct result
 
 void makeCases(int, vector<vector<entry>> &, FILE *, string); // forward declare
 
+string printMem(int state)
+{
+    PROCESS_MEMORY_COUNTERS memInfo;
+    GetProcessMemoryInfo(GetCurrentProcess(), &memInfo, sizeof(memInfo));
+    unsigned long long memUsage = memInfo.WorkingSetSize / 1024; // in KB
+    unsigned long long memPeak = memInfo.PeakWorkingSetSize / 1024; 
+    string ret0 = "Memory usage: " + to_string(memUsage) + " KB\n";
+    string ret1 = "Peak memory usage: " + to_string(memPeak) + " KB\n";
+    if(state == 0) return ret0;
+    else if(state == 1) return ret1;
+
+    return ""; // Default return
+}
 
 result InsertionSort(vector<entry> arr, int casenum)
 {
     result r;
 
     cout << "Start insertion sort\n";
-    auto timer = high_resolution_clock::now();
-    
+    auto timer = chrono::high_resolution_clock::now();
+    string recMem_Init = printMem(0);       // store initial memory usage
+    cout << recMem_Init << endl;
+    FILE *file = fopen(TIMEREC, "a");
+    fprintf(file,"Start insertion sort case # %d \n[Init] %s", casenum, recMem_Init.c_str());
+
     for (int i = 1; i < arr.size(); i++) // start from 1, first element is sorted
     {
         entry temp = arr[i]; // store current element
@@ -72,15 +92,18 @@ result InsertionSort(vector<entry> arr, int casenum)
         arr[j + 1] = temp;
     }
     
-    auto stop = high_resolution_clock::now();
-    auto dur = duration_cast<microseconds>(stop - timer);
+    auto stop = chrono::high_resolution_clock::now();
+    auto dur = chrono::duration_cast<chrono::microseconds>(stop - timer);
     r.arr2 = arr; // sorted array to result struct
     r.timer = dur.count(); // record time in microseconds
+    string recMem_Fin = printMem(1); // store final peak mem usage
 
     cout << "Sorted array in " << dur.count() << " microseconds\n";
-    FILE *file = fopen(TIMEREC, "a");
-    fprintf(file, "Sorted case #%d with %lu items in %ld microseconds with Insertion\n",
-            casenum, CASE_ITEMS, dur.count());
+    cout << recMem_Fin << endl;
+    
+    // output performance record
+    fprintf(file, "Sorted case #%d with %lu items in %ld microseconds with Insertion\n[Final] %s\n",
+            casenum, CASE_ITEMS, dur.count(), recMem_Fin.c_str()); // output performance record
     if (file != nullptr)
     {
         fclose(file);
@@ -113,20 +136,26 @@ result QuickSort(vector<entry> arr, int casenum) // provide arr and specify the 
     result r;
    
     cout << "Start quick sort\n";
-    auto timer = high_resolution_clock::now(); // record run time dur
+    auto timer = chrono::high_resolution_clock::now(); // record run time dur
+    string recMem_Init = printMem(0);       // store initial memory usage
+    cout << recMem_Init << endl;
+    FILE *file = fopen(TIMEREC, "a");
+    fprintf(file,"Start Quick sort case # %d \n[Init] %s", casenum, recMem_Init.c_str());
+
     QuickSortCore(arr,0,arr.size()-1); //actual sort from 0 to n - 1
 
-    auto stop = high_resolution_clock::now();
-    auto dur = duration_cast<microseconds>(stop - timer);
+    auto stop = chrono::high_resolution_clock::now();
+    auto dur = chrono::duration_cast<chrono::microseconds>(stop - timer);
 
     r.arr2 = arr;
     r.timer = dur.count();
+    string recMem_Fin = printMem(1); // store final peak mem usage
 
     // output performance record
     cout << "Sorted array in " << dur.count() << " microseconds\n";
-    FILE *file = fopen(TIMEREC, "a");
-    fprintf(file, "Sorted case #%d with %lu items in %ld microseconds with Quick\n",
-            casenum, CASE_ITEMS, dur.count());
+    cout << recMem_Fin << endl;
+    fprintf(file, "Sorted case #%d with %lu items in %ld microseconds with Quick\n[Final] %s\n",
+        casenum, CASE_ITEMS, dur.count(), recMem_Fin.c_str());
     if(file!=nullptr)
         fclose(file);
     return r;
@@ -192,19 +221,26 @@ result MergeSort(vector<entry>arr, int casenum) //run and record time
     result r;
 
     cout << "Start merge sort\n";
-    auto timer = high_resolution_clock::now(); // record run time dur
+    auto timer = chrono::high_resolution_clock::now(); // record run time dur
+    string recMem_Init = printMem(0);       // store initial memory usage
+    cout << recMem_Init << endl;
+    FILE *file = fopen(TIMEREC, "a");
+    fprintf(file,"Start Merge sort case # %d \n[Init] %s", casenum, recMem_Init.c_str());
+
     arr = MergeCut(arr); // start sorting, assign sorted array back to arr
 
-    auto stop = high_resolution_clock::now();
-    auto dur = duration_cast<microseconds>(stop - timer);
+    auto stop = chrono::high_resolution_clock::now();
+    auto dur = chrono::duration_cast<chrono::microseconds>(stop - timer);
 
     r.arr2 = arr; // sorted array to result struct
     r.timer = dur.count(); // record time in microseconds
+    string recMem_Fin = printMem(1); // store final peak mem usage
 
+    // output performance record
     cout << "Sorted array in " << dur.count() << " microseconds\n";
-    FILE *file = fopen(TIMEREC, "a");
-    fprintf(file, "Sorted case #%d with %lu items in %ld microseconds with Merge\n",
-            casenum, CASE_ITEMS, dur.count());
+    cout << recMem_Fin << endl;
+    fprintf(file, "Sorted case #%d with %lu items in %ld microseconds with Merge\n[Final] %s\n",
+        casenum, CASE_ITEMS, dur.count(), recMem_Fin.c_str());
     if(file!=nullptr)
         fclose(file);
     return r;
@@ -235,7 +271,12 @@ result HeapSort(vector<entry>arr, int casenum)
     result r;
 
     cout << "Start heap sort\n";
-    auto timer = high_resolution_clock::now(); // record run time dur
+    auto timer = chrono::high_resolution_clock::now(); // record run time dur
+    string recMem_Init = printMem(0);       // store initial memory usage
+    cout << recMem_Init << endl;
+    FILE *file = fopen(TIMEREC, "a");
+    fprintf(file,"Start Heap sort case # %d \n[Init] %s", casenum, recMem_Init.c_str());
+
     int n = arr.size(); // get size of array
 
     for (int i = n / 2 - 1; i >= 0; i--) // build max heap
@@ -247,16 +288,18 @@ result HeapSort(vector<entry>arr, int casenum)
         heapify(arr, i, 0); // heapify from 0 to i (reduced size)
     }
 
-    auto stop = high_resolution_clock::now();
-    auto dur = duration_cast<microseconds>(stop - timer);
+    auto stop = chrono::high_resolution_clock::now();
+    auto dur = chrono::duration_cast<chrono::microseconds>(stop - timer);
 
     r.arr2 = arr;          // sorted array to result struct
     r.timer = dur.count(); // record time in microseconds
-    
+    string recMem_Fin = printMem(1); // store final peak mem usage
+
+    // output performance record
     cout << "Sorted array in " << dur.count() << " microseconds\n";
-    FILE *file = fopen(TIMEREC, "a");
-    fprintf(file, "Sorted case #%d with %lu items in %ld microseconds with Heap\n",
-            casenum, CASE_ITEMS, dur.count());
+    cout << recMem_Fin << endl;
+    fprintf(file, "Sorted case #%d with %lu items in %ld microseconds with Heap\n[Final] %s\n",
+        casenum, CASE_ITEMS, dur.count(), recMem_Fin.c_str());
     if(file!=nullptr)
         fclose(file);
     return r;
