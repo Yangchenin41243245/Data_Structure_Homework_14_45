@@ -208,8 +208,6 @@ double recordTime(function<void()> sortFunc) {
 
 讓每種排序方法都可以包裝成 lambda 傳入這個函式中，方便統一計時。
 
-好的，我們進入 **區塊三**，並以嚴謹方式解析：
-
 ---
 
 ### 三. 排序函式實作與統一測試介面 `runSort()`
