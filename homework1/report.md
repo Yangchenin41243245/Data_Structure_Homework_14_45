@@ -264,24 +264,24 @@ void heapSort(vector<int>& arr);
 
 ##### 運作流程：
 
-1. **記錄排序前記憶體**：
+**記錄排序前記憶體**：
    ```cpp
    SIZE_T memBefore = memoryUsage();
    ```
 
-2. **計時排序函式執行時間**：
+**計時排序函式執行時間**：
    ```cpp
    double time = recordTime([&]() { sortFunc(data); });
    ```
    - 使用 lambda 封裝 `sortFunc(data)` 呼叫，以符合 `recordTime()` 的格式。
    - Lambda 捕捉 `[&]` 表示引用捕捉，確保 `data` 被修改（這裡其實是複製進來的副本，不會影響原資料）。
 
-3. **記錄排序後記憶體**：
+**記錄排序後記憶體**：
    ```cpp
    SIZE_T memAfter = memoryUsage();
    ```
 
-4. **輸出與紀錄測試結果**：
+**輸出與紀錄測試結果**：
    ```cpp
    cout << ...;     // 印到螢幕
    logFile << ...;  // 寫入檔案
@@ -470,14 +470,14 @@ void makeCases(int cases, vector<vector<entry>> &superarray, FILE *unsortedfile,
 
 #### 運作流程：
 
-1. **迴圈生成用例**：
+**迴圈生成用例**：
    - 外層迴圈迭代 `cases` 次（5 次）。
 
-2. **初始化陣列**：
+**初始化陣列**：
    - 創建 `vector<entry> array`。
    - 寫入用例標頭到 `unsortedfile`（"Case X with 6000 items:"）。
 
-3. **生成元素**：
+**生成元素**：
    - 內層迴圈生成 6000 個 `entry`：
      - 分配 `node` 物件。
      - 根據 `mode` 設置鍵值：
@@ -486,14 +486,14 @@ void makeCases(int cases, vector<vector<entry>> &superarray, FILE *unsortedfile,
        - 其他（"HEAP"）：序數（0, 1, ..., 5999）。
      - 創建 `entry` 並加入 `array`。
 
-4. **隨機排列（Heap）**：
+**隨機排列（Heap）**：
    - 若 `mode` 為 "HEAP"，從索引 5999 到 2 隨機交換元素。
 
-5. **輸出鍵值**：
+**輸出鍵值**：
    - 遍歷 `array`，寫入鍵值到 `unsortedfile`。
    - 控制台確認寫入。
 
-6. **儲存用例**：
+**儲存用例**：
    - 將 `array` 加入 `superarray`，控制台確認創建。
 
 ---
