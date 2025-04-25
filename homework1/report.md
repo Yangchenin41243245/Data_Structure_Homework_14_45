@@ -417,6 +417,126 @@ function<void(int, int)> heapify = [&](int n, int i) { ... };
 
 ---
 
+### 五. makeCases 函數 — 測資生成器
+
+```cpp
+void makeCases(int cases, vector<vector<entry>> &superarray, FILE *unsortedfile, string mode)
+```
+- **參數**：
+  - `cases`: 要生成的測試用例數量（由 `CASES` 定義，預設為 5）。
+  - `superarray`: 一個 `vector<vector<entry>>` 的引用，用於存儲生成的測試用例數組。每個測試用例是一個 `vector<entry>`。
+  - `unsortedfile`: 指向輸出文件的指針（`FILE *`），用於將未排序的鍵值寫入文件（`UNSORTED`）。
+  - `mode`: 一個字符串，指定生成鍵值的模式（例如 `"INSERTION"`、`"QUICK"`、`"MERGE"` 或 `"HEAP"`）。
+- **返回值**：無（`void`），但通過引用修改 `superarray` 並寫入文件。
+
+---
+
+##### 外層循環
+```cpp
+for (int c = 0; c < cases; c++) // create cases
+{
+    vector<entry> array;
+    long key;
+    fprintf(unsortedfile, "\nCase %d with %lu items:\n", c + 1, CASE_ITEMS);
+    // ...
+}
+```
+- **功能**：遍歷 `cases` 次，生成 `cases` 個測試用例。
+  - 每次循環創建一個空的 `vector<entry>` 數組 `array`，用於存儲當前測試用例的元素。
+  - 使用 `fprintf` 向 `unsortedfile` 寫入當前測試用例的標識（例如 `Case 1 with 500 items:`），為文件輸出添加結構化信息。
+  - `CASE_ITEMS` 定義了每個測試用例的元素數量（預設 500）。
+
+---
+
+##### 內層循環
+```cpp
+for (int i = 0; i < CASE_ITEMS; i++) // create array with nodes
+{
+    node *n = new node;
+    if (mode == "INSERTION" || mode == "QUICK" || mode == "MERGE") // generate key nums by mode
+        key = INSKEYS; //do worst case = max -> min
+    else if (mode == "RANDOM")
+        key = RNGKEYS;
+    else
+        key = i;     // will process after array is created
+    entry e(key, n); // create entry with key and node
+    array.push_back(e);
+}
+```
+- **功能**：為每個測試用例生成 `CASE_ITEMS` 個 `entry` 對象，並設置它們的鍵值。
+  - **動態分配 `node`**：
+    - 為每個 `entry` 創建一個新的 `node` 對象（`new node`），並分配在堆上。
+    - 注意：這裡的 `node` 結構目前僅包含一個 `int data`，但程式中並未對 `data` 進行初始化或使用，因此這部分可能是未完成或待擴展的功能。
+  - **鍵值生成**：
+    - 鍵值（`key`）的生成方式取決於 `mode`：
+      - **INSERTION, QUICK, MERGE**：
+        - 使用 `INSKEYS` 宏，定義為 `CASE_ITEMS - i`（即 500, 499, ..., 1）。
+        - 這會生成一個逆序數組（從大到小），對於插入排序（`INSERTION`）和快速排序（`QUICK`）來說是 **最壞情況**（worst case），因為插入排序需要多次移位，快速排序的樞軸選擇（程式中選第一個元素）會導致不平衡分割。
+      - **RANDOM**：
+        - 使用 `RNGKEYS` 宏，定義為 `rand() % CASE_ITEMS`，生成隨機鍵值（0 到 499 之間）。
+        - 注意：程式中實際上未使用 `"RANDOM"` 模式（主程式中只傳入 `"INSERTION"`、`"QUICK"`、`"MERGE"`、`"HEAP"`）。
+      - **其他（默認為 HEAP）**：
+        - 鍵值設為 `i`（即 0, 1, ..., 499），生成一個升序數組。
+        - 這是臨時值，後續在 `"HEAP"` 模式下會進行隨機化處理。
+  - **創建 `entry` 並添加到數組**：
+    - 使用生成的 `key` 和 `node` 創建一個 `entry` 對象 `e`。
+    - 將 `e` 添加到當前測試用例的 `array` 中。
+
+---
+
+##### HEAP 模式的特殊處理
+```cpp
+if (mode == "HEAP") // do the Permutation() provided
+{
+    for (int i = CASE_ITEMS - 1; i >= 2; i--)
+    {
+        int j = rand() % i + 1;
+        swap(array[i], array[j]);
+    }
+}
+```
+- **功能**：如果 `mode` 是 `"HEAP"`，對數組進行隨機化處理，模擬隨機排列。
+  - 在生成數組時，`"HEAP"` 模式的鍵值最初是升序的（0, 1, ..., 499）。
+  - 這裡通過一個簡化的隨機排列演算法（類似 Fisher-Yates 洗牌的變種）對數組進行隨機化：
+    - 從索引 `CASE_ITEMS - 1`（499）到 2，隨機選擇一個索引 `j`（範圍從 1 到 `i`）。
+    - 交換 `array[i]` 和 `array[j]`，實現隨機排列。
+---
+
+##### 輸出未排序數組到文件
+```cpp
+for (int i = 0; i < CASE_ITEMS; i++) // output key of each node in array just made
+{
+    array[i].outputkey(unsortedfile);
+}
+```
+- **功能**：將當前測試用例的每個 `entry` 對象的鍵值輸出到 `unsortedfile`。
+  - 調用 `entry` 類的 `outputkey` 方法：
+    ```cpp
+    void outputkey(FILE *file)
+    {
+        fprintf(file, " key: %ld\n", key);
+    }
+    ```
+  - 每個鍵值以格式 `key: <value>` 寫入文件，每行一個鍵值。
+  - 這一步記錄了未排序數組的初始狀態，方便後續對比或調試。
+
+---
+
+##### 存儲數組並輸出日誌
+```cpp
+cout << "output unsorted array to file" << UNSORTED << endl;
+superarray.push_back(array); // add array to cases
+cout << "Created unsorted array for case #" << c + 1 << endl;
+```
+- **功能**：將生成的數組存入 `superarray` 並打印日誌。
+- **細節**：
+  - 將當前測試用例的 `array`（`vector<entry>`）添加到 `superarray` 中，`superarray` 是一個 `vector<vector<entry>>`，每個元素是一個測試用例的數組。
+  - 輸出：
+    - 確認已將未排序數組寫入文件（`UNSORTED`）。
+    - 確認已創建當前測試用例（例如 `Created unsorted array for case #1`）。
+
+---
+
 ## 測試與驗證
 
 ### 最壞執行時間表格 Worst-case Performance (Time in Microseconds)
