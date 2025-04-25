@@ -537,6 +537,96 @@ cout << "Created unsorted array for case #" << c + 1 << endl;
 
 ---
 
+以下是對提供的 C++ 程式碼中 `main` 函式的詳細講解，包含其功能、程式流程、結構分析、特殊之處以及潛在改進點。`main` 函式作為程式的入口，負責初始化環境、生成測試用例、執行排序演算法並輸出結果。
+
+---
+
+### 6. `main` 主程式
+
+```cpp
+int main(void)
+{
+    remove(SORTED);
+    cout << "Removed old " << SORTED << endl; // remove old files
+    remove(UNSORTED);
+    cout << "Removed old " << UNSORTED << endl;
+    remove(TIMEREC);
+    cout << "Removed old " << TIMEREC << endl;
+
+    FILE *f_Unsorted = fopen(UNSORTED, "a"); // create new files
+    FILE *f_Sorted = fopen(SORTED, "a");
+
+    srand(time(0)); // set random
+    vector<vector<entry>> superarray[4]; // all cases stored here
+    result result;
+    //MAKE CASES HERE/////////////////////////////////////
+    makeCases(CASES, superarray[0], f_Unsorted, "INSERTION"); 
+    makeCases(CASES, superarray[1], f_Unsorted, "QUICK"); 
+    makeCases(CASES, superarray[2], f_Unsorted, "MERGE"); 
+    makeCases(CASES, superarray[3], f_Unsorted, "HEAP"); // create cases, provide file path for unsorted cases
+    //////////////////////////////////////////////////////
+    //SORT ALL/////////////////////////////////////////////////////////////////
+    for (int type = 0; type < 4;type++){ //type m
+        for (int i = 0, caseNum = 1; i < superarray[type].size(); i++, caseNum++) // SA of type m with i cases
+        {
+            auto duration = 0;
+            switch (type)
+            {
+            case 0:
+                result = InsertionSort(superarray[type][i], caseNum);
+                break;
+            case 1:
+                result = QuickSort(superarray[type][i], caseNum);
+                break;
+            case 2:
+                result = MergeSort(superarray[type][i], caseNum);
+                break;
+            case 3:
+                result = HeapSort(superarray[type][i], caseNum);
+                break;
+            default:
+                break;
+            }
+            duration = result.timer; // get duration from result struct
+            //OUTPUT TIME
+            fprintf(f_Sorted, "\nCase %d of %lu items finished in %lu microseconds\n", caseNum, CASE_ITEMS, duration);
+            for (int j = 0; j < CASE_ITEMS; j++) // output keys of sorted array
+            {
+                result.arr2[j].outputkey(f_Sorted); // i for array, j for entry
+            }
+            cout << "output sorted array to file" << SORTED << endl;
+        }
+    }
+    /////////////////////////////////////////////////////////////////////////////////
+    fclose(f_Unsorted);
+    fclose(f_Sorted);
+    return 0;
+}
+```
+
+---
+
+#### 說明：
+
+1. **模組化設計**：
+   - `main` 將初始化、用例生成、排序執行和結果輸出分離，邏輯清晰。
+   - 排序演算法獨立於 `InsertionSort`、`QuickSort` 等函式，`main` 僅負責調度和結果處理。
+
+2. **資料組織**：
+   - `superarray[4]` 是一個陣列，每個元素是一個 `vector<vector<entry>>`，儲存某種排序演算法的 5 組測試用例。
+   - 每個用例是 `vector<entry>`，包含 6000 個 `entry` 物件（鍵值和 `node` 指針）。
+   - `result` 結構統一儲存排序結果，便於傳遞和處理。
+
+3. **控制流程**：
+   - 使用雙層迴圈（`type` 和 `i`）遍歷演算法和用例，確保所有測試有序執行。
+   - `switch` 結構簡單映射演算法類型到排序函式，但限制了擴展性。
+
+4. **檔案 I/O**：
+   - `tosort.txt` 儲存未排序鍵值，`sorted.txt` 儲存排序結果，`timer.txt` 由排序函式寫入性能數據。
+   - 檔案操作分散（`makeCases` 寫入未排序資料，`main` 寫入排序結果，排序函式寫入性能），結構清晰但效率稍低。
+
+---
+
 ## 測試與驗證
 
 ### 最壞執行時間表格 Worst-case Performance (Time in Microseconds)
