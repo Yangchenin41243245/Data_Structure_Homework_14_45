@@ -496,16 +496,6 @@ void makeCases(int cases, vector<vector<entry>> &superarray, FILE *unsortedfile,
 6. **儲存用例**：
    - 將 `array` 加入 `superarray`，控制台確認創建。
 
-## 結構分析
-
-- **參數**：
-  - `cases`：用例數。
-  - `superarray`：儲存用例（傳引用）。
-  - `unsortedfile`：未排序檔案。
-  - `mode`：鍵值模式。
-- **資料結構**：`vector<entry>` 儲存用例，`entry` 含 `key` 和 `node`。
-- **控制流程**：雙層迴圈，條件分支設置鍵值。
-- **檔案 I/O**：格式化輸出鍵值。
 ---
 
 ### 6. `main` 主程式
@@ -575,23 +565,81 @@ int main(void)
 
 #### 說明：
 
-1. **模組化設計**：
-   - `main` 將初始化、用例生成、排序執行和結果輸出分離，邏輯清晰。
-   - 排序演算法獨立於 `InsertionSort`、`QuickSort` 等函式，`main` 僅負責調度和結果處理。
+##### 移除舊檔案（清空資料）
+```cpp
+remove(SORTED);
+remove(UNSORTED);
+remove(TIMEREC);
+```
+這段會刪除之前執行時產生的三個檔案：
+- `sorted.txt`：儲存排序後資料
+- `tosort.txt`：儲存原始（未排序）資料
+- `timer.txt`：儲存每次排序的時間與記憶體紀錄
 
-2. **資料組織**：
-   - `superarray[4]` 是一個陣列，每個元素是一個 `vector<vector<entry>>`，儲存某種排序演算法的 5 組測試用例。
-   - 每個用例是 `vector<entry>`，包含 6000 個 `entry` 物件（鍵值和 `node` 指針）。
-   - `result` 結構統一儲存排序結果，便於傳遞和處理。
+---
 
-3. **控制流程**：
-   - 使用雙層迴圈（`type` 和 `i`）遍歷演算法和用例，確保所有測試有序執行。
-   - `switch` 結構簡單映射演算法類型到排序函式，但限制了擴展性。
+##### 開啟檔案進行輸出
+```cpp
+FILE *f_Unsorted = fopen(UNSORTED, "a");
+FILE *f_Sorted = fopen(SORTED, "a");
+```
+開啟（或建立）用來輸出未排序與已排序資料的檔案。
 
-4. **檔案 I/O**：
-   - `tosort.txt` 儲存未排序鍵值，`sorted.txt` 儲存排序結果，`timer.txt` 由排序函式寫入性能數據。
-   - 檔案操作分散（`makeCases` 寫入未排序資料，`main` 寫入排序結果，排序函式寫入性能），結構清晰但效率稍低。
+---
 
+##### 初始化亂數與資料結構
+```cpp
+srand(time(0));
+vector<vector<entry>> superarray[4];
+result result;
+```
+- `srand(time(0))`：初始化亂數種子。
+- `superarray[4]`：四種排序法的所有測試案例存放區，每個排序法都會有 5 組測資。
+- `result`：記錄每次排序後的時間與排序結果。
+
+---
+
+##### 產生排序測試案例
+```cpp
+makeCases(CASES, superarray[0], f_Unsorted, "INSERTION"); 
+makeCases(CASES, superarray[1], f_Unsorted, "QUICK"); 
+makeCases(CASES, superarray[2], f_Unsorted, "MERGE"); 
+makeCases(CASES, superarray[3], f_Unsorted, "HEAP");
+```
+每次呼叫 `makeCases()` 會生成 5 組測試資料，依不同排序類型使用不同排序特性資料：
+- Insertion、Quick、Merge：worst-case 由大排到小（INSKEYS）
+- Heap：隨機打亂
+
+---
+
+##### 執行排序與輸出結果
+```cpp
+for (int type = 0; type < 4;type++){
+    for (int i = 0, caseNum = 1; i < superarray[type].size(); i++, caseNum++){
+        ...
+        result = InsertionSort(...); // 或其他排序
+        ...
+        fprintf(f_Sorted, "...", caseNum, CASE_ITEMS, duration);
+        ...
+        result.arr2[j].outputkey(f_Sorted);
+    }
+}
+```
+
+- 外層迴圈跑四種排序。
+- 內層跑每種排序對應的五筆資料。
+- 執行排序後：
+  - 印出花費的時間
+  - 記錄記憶體用量
+  - 將排序結果寫入檔案
+
+---
+
+##### 關閉檔案
+```cpp
+fclose(f_Unsorted);
+fclose(f_Sorted);
+```
 ---
 
 ## 測試與驗證
