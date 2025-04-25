@@ -208,6 +208,88 @@ double recordTime(function<void()> sortFunc) {
 
 讓每種排序方法都可以包裝成 lambda 傳入這個函式中，方便統一計時。
 
+好的，我們進入 **區塊三**，並以嚴謹方式解析：
+
+---
+
+### 三. 排序函式實作與統一測試介面 `runSort()`
+
+```cpp
+// 實作排序方法
+void insertionSort(vector<int>& arr);
+void quickSort(vector<int>& arr);
+void mergeSort(vector<int>& arr);
+void heapSort(vector<int>& arr);
+
+// 測試用排序介面
+void runSort(string sortName, void (*sortFunc)(vector<int>&), vector<int> data, ofstream& logFile) {
+    SIZE_T memBefore = memoryUsage();  // 排序前記憶體
+    double time = recordTime([&]() { sortFunc(data); });  // 排序時間
+    SIZE_T memAfter = memoryUsage();   // 排序後記憶體
+
+    // 結果輸出
+    cout << sortName << ": " << time << " ms, ";
+    cout << "Memory used: " << (memAfter - memBefore) / 1024 << " KB" << endl;
+    logFile << sortName << ": " << time << " ms, ";
+    logFile << "Memory used: " << (memAfter - memBefore) / 1024 << " KB" << endl;
+}
+```
+
+---
+
+#### 說明：
+
+##### 排序函式宣告
+
+```cpp
+void insertionSort(vector<int>& arr);
+void quickSort(vector<int>& arr);
+void mergeSort(vector<int>& arr);
+void heapSort(vector<int>& arr);
+```
+
+這四個函式是用來排序整數陣列的，採用傳參考方式以便直接在原始資料上操作。它們的實作在程式後面，這裡僅宣告。
+
+---
+
+##### `runSort(...)` — 統一測試框架
+
+**目的**：統一測量排序時間與記憶體，並印出與紀錄結果。
+
+**參數解析**：
+- `sortName`: 排序法名稱，用於輸出。
+- `sortFunc`: 指向排序函式的函式指標（`void (*)(vector<int>&)`）。
+- `data`: 排序資料，傳值進來，以避免修改原資料。
+- `logFile`: 日誌檔案參考，用來紀錄輸出結果。
+
+---
+
+##### 運作流程：
+
+1. **記錄排序前記憶體**：
+   ```cpp
+   SIZE_T memBefore = memoryUsage();
+   ```
+
+2. **計時排序函式執行時間**：
+   ```cpp
+   double time = recordTime([&]() { sortFunc(data); });
+   ```
+   - 使用 lambda 封裝 `sortFunc(data)` 呼叫，以符合 `recordTime()` 的格式。
+   - Lambda 捕捉 `[&]` 表示引用捕捉，確保 `data` 被修改（這裡其實是複製進來的副本，不會影響原資料）。
+
+3. **記錄排序後記憶體**：
+   ```cpp
+   SIZE_T memAfter = memoryUsage();
+   ```
+
+4. **輸出與紀錄測試結果**：
+   ```cpp
+   cout << ...;     // 印到螢幕
+   logFile << ...;  // 寫入檔案
+   ```
+   記憶體差異以 KB 為單位輸出，方便閱讀。
+
 ---
 
 ## 測試與驗證
