@@ -76,6 +76,33 @@ auto duration = chrono::duration_cast<chrono::microseconds>(end - start);
 ---
 
 ## 效能分析
+# Sorting Algorithm Performance Tables
+
+## Worst-case Performance (Time in Microseconds)
+
+| Data Size | Insertion Sort | Quick Sort | Merge Sort | Heap Sort |
+|-----------|----------------|------------|------------|-----------|
+| 500       | 847            | 440        | 2326       | 311       |
+| 1000      | 2766           | 1106       | 5090       | 320       |
+| 2000      | 6395           | 2381       | 15428      | 615       |
+| 3000      | 14413          | 5218       | 23567      | 849       |
+| 4000      | 24047          | 9181       | 28200      | 1125      |
+| 5000      | 39733          | 20349      | 30139      | 1377      |
+
+![image](https://github.com/Yangchenin41243245/Data_Structure_Homework_14_45/blob/proto2/homework1/src/pics/worst.png)
+
+## Average-case Performance (Time in Microseconds)
+
+| Data Size | Insertion Sort | Quick Sort | Merge Sort | Heap Sort |
+|-----------|----------------|------------|------------|-----------|
+| 500       | 701.0          | 325.8      | 2253.0     | 240.0     |
+| 1000      | 1906.4         | 792.6      | 4777.0     | 283.8     |
+| 2000      | 6149.2         | 2261.8     | 13970.4    | 540.6     |
+| 3000      | 13777.4        | 5050.6     | 20875.4    | 717.6     |
+| 4000      | 23150.0        | 8675.4     | 25028.8    | 941.2     |
+| 5000      | 38502.8        | 15283.0    | 26602.8    | 1223.2    |
+
+![image](https://github.com/Yangchenin41243245/Data_Structure_Homework_14_45/blob/proto2/homework1/src/pics/average.png)
 
 ## 程式實作
 
