@@ -119,7 +119,11 @@ auto duration = chrono::duration_cast<chrono::microseconds>(end - start);
 
 ## 程式實作
 
-### 1. 頭文件與定義
+當然可以，讓我們來看 **區塊一**：
+
+---
+
+### 一. 標頭與基本設置
 
 ```cpp
 #include <iostream>
@@ -128,332 +132,46 @@ auto duration = chrono::duration_cast<chrono::microseconds>(end - start);
 #include <ctime>
 #include <cstdlib>
 #include <chrono>
-using namespace std;
-using namespace std::chrono;
+#include <windows.h>
+#include <psapi.h>
+#include <string>
 
-#define CASE_ITEMS 5000 // number of items in each case
-#define CASES 10      // number of cases
+#pragma comment( lib, "psapi.lib" )
+using namespace std;
+
+#define CASE_ITEMS 500 // number of items in each case
+#define CASES 5      // number of cases
 #define RNGKEYS rand() % CASE_ITEMS
 #define INSKEYS CASE_ITEMS - i // worst case for insertion sort
-#define UNSORTED "./tosort.txt"
-#define SORTED "./sorted.txt"
-#define TIMEREC "./timer.txt"
+#define UNSORTED "D:/work/sort/tosort.txt"
+#define SORTED "D:/work/sort/sorted.txt"
+#define TIMEREC "D:/work/sort/timer.txt"
 ```
-
-#### 解釋
-- **功能**：引入必要的 C++ 標準庫，包括輸入輸出（`<iostream>`）、動態陣列（`<vector>`）、計時（`<chrono>`）等，並定義常數。
-- **常數定義**：
-  - `CASE_ITEMS`：每個測試案例的資料量（5000）。
-  - `CASES`：測試案例數（10）。
-  - `RNGKEYS` 和 `INSKEYS`：用於生成隨機鍵值和插入排序的最壞情況鍵值。
-  - 文件路徑（`UNSORTED`, `SORTED`, `TIMEREC`）：用於儲存未排序、已排序和計時結果。
----
-
-### 2. 資料結構定義
-
-```cpp
-struct node
-{
-    int data;
-};
-
-class entry
-{
-public:
-    friend class node;
-    long key;
-    entry(long k, node *d)
-    {
-        key = k;
-        data = d;
-    }
-    void setkey(int k) 
-    {
-        key = k; 
-    }
-    void outputkey(FILE *file)
-    {
-        fprintf(file, " key: %ld\n", key);
-    }
-private:
-    node *data;
-};
-```
-
-#### 解釋
-- **功能**：
-  - `node`：簡單結構，包含一個整數資料欄位。
-  - `entry`：主要資料結構，包含鍵值（`key`）和指向 `node` 的指標，用於排序和輸出。
 
 ---
 
-### 3. 插入排序實現
+#### 說明：
 
-```cpp
-void InsertionCore(entry *temp, vector<entry>&arr, int i)
-{
-    entry a = *temp;
-    int pos = i;
-    while(i >= 0 && a.key < arr[i].key)
-    {
-        arr[i + 1] = arr[i];
-        i--;
-    }
-    arr[i+1] = a;
-}
+##### 引入標頭檔
+這裡引入了多個標準與系統相關的 C++ 標頭檔：
+- `iostream`, `vector`, `algorithm`, `string`：常用的 C++ 標準庫，處理輸出、容器、演算法與字串。
+- `ctime`, `cstdlib`：處理隨機數與時間。
+- `chrono`：計時用，計算排序時間。
+- `windows.h`, `psapi.h`：Windows API，用來查詢記憶體使用情況。
 
-unsigned long InsertionSort(vector<entry> &arr, int casenum)
-{
-    cout << "Start insertion sort\n";
-    auto timer = high_resolution_clock::now();
-    for (int j = 2; j < arr.size(); j++)
-    {
-        entry*temp = &arr[j];
-        InsertionCore(temp, arr, j-1);
-    }
-    auto stop = high_resolution_clock::now();
-    auto dur = duration_cast<microseconds>(stop - timer);
-    cout << "Sorted array in " << dur.count() << " microseconds\n";
-    FILE *file = fopen(TIMEREC, "a");
-    fprintf(file, "Sorted case #%d with %lu items in %ld microseconds with Insertion\n",
-            casenum, CASE_ITEMS, dur.count());
-    if (file != nullptr)
-    {
-        fclose(file);
-    }
-    return dur.count();
-}
-```
+##### `#pragma comment(lib, "psapi.lib")`
+這行是為了讓 `psapi.h` 裡的函式在編譯時自動連結 `psapi.lib`，這是 Windows 的程式記憶體管理函式庫。
 
-#### 解釋
-- **功能**：
-  - `InsertionCore`：核心插入邏輯，將元素插入到正確位置。
-  - `InsertionSort`：完整的插入排序實現，記錄執行時間並輸出到文件。
-- **計時**：使用 `<chrono>` 的高精度計時器，單位為微秒。
+##### 宏定義（`#define`）
+這邊設定了一些「全域常數與快捷設定」：
+- `CASE_ITEMS`：每筆測試資料裡要排序的元素數量（500）。
+- `CASES`：總共要做幾組測試（5 組）。
+- `RNGKEYS`：隨機 key，用於亂數測資。
+- `INSKEYS`：用於 Insertion Sort 最差情境的資料（由大到小，`CASE_ITEMS - i`）。
+- `UNSORTED`, `SORTED`, `TIMEREC`：三個檔案的儲存路徑（未排序、排序後、計時紀錄）。
+
 
 ---
-
-### 4. 快速排序實現
-
-```cpp
-void QuickSortCore(vector<entry>&arr, int left, int right)
-{
-    if (left < right)
-    {
-        entry *pivot = &arr[left];
-        int i = left, j = right + 1;
-        do
-        {
-            do i++; while (arr[i].key < pivot->key);
-            do j--; while (arr[j].key > pivot->key);
-            if (i < j) swap(arr[i], arr[j]);
-        } while (i < j);
-        swap(arr[left], arr[j]);
-        QuickSortCore(arr, left, j - 1);
-        QuickSortCore(arr, j + 1, right);
-    }
-}
-
-unsigned long QuickSort(vector<entry> &arr, int casenum)
-{
-    cout << "Start quick sort\n";
-    auto timer = high_resolution_clock::now();
-    QuickSortCore(arr, 0, arr.size()-1);
-    auto stop = high_resolution_clock::now();
-    auto dur = duration_cast<microseconds>(stop - timer);
-    cout << "Sorted array in " << dur.count() << " microseconds\n";
-    FILE *file = fopen(TIMEREC, "a");
-    fprintf(file, "Sorted case #%d with %lu items in %ld microseconds with Quick\n",
-            casenum, CASE_ITEMS, dur.count());
-    if(file!=nullptr) fclose(file);
-    return dur.count();
-}
-```
-
-#### 解釋
-- **功能**：
-  - `QuickSortCore`：遞迴實現快速排序，使用第一個元素作為樞軸（pivot）。
-  - `QuickSort`：啟動排序並計時。
----
-
-### 5. 合併排序實現
-
-```cpp
-vector<entry> MergeCore(vector<entry>& a, vector<entry>& b)
-{
-    vector<entry> c;
-    c.reserve(a.size() + b.size());
-    auto it_a = a.begin();
-    auto it_b = b.begin();
-    while (it_a != a.end() && it_b != b.end())
-    {
-        if (it_a->key < it_b->key)
-        {
-            c.push_back(std::move(*it_a));
-            ++it_a;
-        }
-        else
-        {
-            c.push_back(std::move(*it_b));
-            ++it_b;
-        }
-    }
-    while (it_a != a.end()) { c.push_back(std::move(*it_a)); ++it_a; }
-    while (it_b != b.end()) { c.push_back(std::move(*it_b)); ++it_b; }
-    return c;
-}
-
-vector<entry> MergeCut(vector<entry>arr)
-{
-    if(arr.size() <= 1) { return arr; }
-    vector<entry> left, right;
-    int mid = arr.size() / 2;
-    for (int i = 0; i < mid; i++) left.push_back(arr[i]);
-    for (int i = mid; i < arr.size(); i++) right.push_back(arr[i]);
-    left = MergeCut(left);
-    right = MergeCut(right);
-    return MergeCore(left, right);
-}
-
-unsigned long MergeSort(vector<entry>&arr, int casenum)
-{
-    cout << "Start merge sort\n";
-    auto timer = high_resolution_clock::now();
-    arr = MergeCut(arr);
-    auto stop = high_resolution_clock::now();
-    auto dur = duration_cast<microseconds>(stop - timer);
-    cout << "Sorted array in " << dur.count() << " microseconds\n";
-    FILE *file = fopen(TIMEREC, "a");
-    fprintf(file, "Sorted case #%d with %lu items in %ld microseconds with Merge\n",
-            casenum, CASE_ITEMS, dur.count());
-    if(file!=nullptr) fclose(file);
-    return dur.count();
-}
-```
-
-#### 解釋
-- **功能**：
-  - `MergeCore`：合併兩個已排序子陣列。
-  - `MergeCut`：遞迴分割陣列。
-  - `MergeSort`：啟動排序並計時。
-
----
-
-## 6. 堆積排序實現
-
-```cpp
-void heapify(vector<entry>& arr, int n, int i)
-{
-    int max = i;
-    int left = 2 * i + 1;
-    int right = 2 * i + 2;
-    if (left < n && arr[left].key > arr[max].key) max = left;
-    if (right < n && arr[right].key > arr[max].key) max = right;
-    if (max != i)
-    {
-        swap(arr[i], arr[max]);
-        heapify(arr, n, max);
-    }
-}
-
-unsigned long HeapSort(vector<entry>&arr, int casenum)
-{
-    cout << "Start heap sort\n";
-    auto timer = high_resolution_clock::now();
-    int n = arr.size();
-    for (int i = n / 2 - 1; i >= 0; i--) heapify(arr, n, i);
-    for (int i = n - 1; i > 0; i--)
-    {
-        swap(arr[0], arr[i]);
-        heapify(arr, i, 0);
-    }
-    auto stop = high_resolution_clock::now();
-    auto dur = duration_cast<microseconds>(stop - timer);
-    cout << "Sorted array in " << dur.count() << " microseconds\n";
-    FILE *file = fopen(TIMEREC, "a");
-    fprintf(file, "Sorted case #%d with %lu items in %ld microseconds with Heap\n",
-            casenum, CASE_ITEMS, dur.count());
-    if(file!=nullptr) fclose(file);
-    return dur.count();
-}
-```
-
-#### 解釋
-- **功能**：
-  - `heapify`：維護最大堆性質。
-  - `HeapSort`：建構最大堆並逐步排序。
-
----
-
-### 7. 主程式與測試資料生成
-
-```cpp
-void makeCases(int cases, vector<vector<entry>> &superarray, FILE *unsortedfile, string mode)
-{
-    for (int c = 0; c < cases; c++)
-    {
-        vector<entry> array;
-        long key;
-        fprintf(unsortedfile, "\nCase %d with %lu items:\n", c + 1, CASE_ITEMS);
-        for (int i = 0; i < CASE_ITEMS; i++)
-        {
-            node *n = new node;
-            if (mode == "INSERTION" || mode == "QUICK" || mode == "MERGE")
-                key = INSKEYS; // worst case = max -> min
-            else if (mode == "RANDOM")
-                key = RNGKEYS;
-            else
-                key = i;
-            entry e(key, n);
-            array.push_back(e);
-        }
-        if (mode == "HEAP")
-        {
-            for (int i = CASE_ITEMS - 1; i >= 2; i--)
-            {
-                int j = rand() % i + 1;
-                swap(array[i], array[j]);
-            }
-        }
-        for (int i = 0; i < CASE_ITEMS; i++)
-            array[i].outputkey(unsortedfile);
-        superarray.push_back(array);
-    }
-}
-
-int main(void)
-{
-    remove(SORTED); remove(UNSORTED); remove(TIMEREC);
-    FILE *f_Unsorted = fopen(UNSORTED, "a");
-    FILE *f_Sorted = fopen(SORTED, "a");
-    srand(time(0));
-    vector<vector<entry>> superarray[4];
-    makeCases(CASES, superarray[0], f_Unsorted, "INSERTION");
-    makeCases(CASES, superarray[1], f_Unsorted, "QUICK");
-    makeCases(CASES, superarray[2], f_Unsorted, "MERGE");
-    makeCases(CASES, superarray[3], f_Unsorted, "HEAP");
-    for (int m = 0; m < 4; m++)
-    {
-        for (int i = 0, c = 1; i < superarray[m].size(); i++, c++)
-        {
-            auto duration = 0;
-            switch (m)
-            {
-            case 0: duration = InsertionSort(superarray[m][i], c); break;
-            case 1: duration = QuickSort(superarray[m][i], c); break;
-            case 2: duration = MergeSort(superarray[m][i], c); break;
-            case 3: duration = HeapSort(superarray[m][i], c); break;
-            }
-            fprintf(f_Sorted, "\nCase %d of %lu items finished in %lu microseconds\n", c, CASE_ITEMS, duration);
-            for (int j = 0; j < CASE_ITEMS; j++)
-                superarray[m][i][j].outputkey(f_Sorted);
-        }
-    }
-    fclose(f_Unsorted);
-    fclose(f_Sorted);
-    return 0;
-}
-```
 
 ## 測試與驗證
 
