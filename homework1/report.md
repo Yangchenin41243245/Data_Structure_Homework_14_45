@@ -76,9 +76,8 @@ auto duration = chrono::duration_cast<chrono::microseconds>(end - start);
 ---
 
 ## 效能分析
-# Sorting Algorithm Performance Tables
 
-## Worst-case Performance (Time in Microseconds)
+### Worst-case Performance (Time in Microseconds)
 
 | Data Size | Insertion Sort | Quick Sort | Merge Sort | Heap Sort |
 |-----------|----------------|------------|------------|-----------|
@@ -91,7 +90,7 @@ auto duration = chrono::duration_cast<chrono::microseconds>(end - start);
 
 ![image](https://github.com/Yangchenin41243245/Data_Structure_Homework_14_45/blob/proto2/homework1/src/pics/worst.png)
 
-## Average-case Performance (Time in Microseconds)
+### Average-case Performance (Time in Microseconds)
 
 | Data Size | Insertion Sort | Quick Sort | Merge Sort | Heap Sort |
 |-----------|----------------|------------|------------|-----------|
