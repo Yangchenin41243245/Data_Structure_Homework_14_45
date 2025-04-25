@@ -150,23 +150,63 @@ using namespace std;
 #### 說明：
 
 ##### 引入標頭檔
-這裡引入了多個標準與系統相關的 C++ 標頭檔：
 - `iostream`, `vector`, `algorithm`, `string`：常用的 C++ 標準庫，處理輸出、容器、演算法與字串。
 - `ctime`, `cstdlib`：處理隨機數與時間。
 - `chrono`：計時用，計算排序時間。
 - `windows.h`, `psapi.h`：Windows API，用來查詢記憶體使用情況。
 
 ##### `#pragma comment(lib, "psapi.lib")`
-這行是為了讓 `psapi.h` 裡的函式在編譯時自動連結 `psapi.lib`，這是 Windows 的程式記憶體管理函式庫。
+讓 `psapi.h` 裡的函式在編譯時自動連結 `psapi.lib`，這是 Windows 的程式記憶體管理函式庫。
 
-##### 宏定義（`#define`）
-這邊設定了一些「全域常數與快捷設定」：
+##### #define 指引
 - `CASE_ITEMS`：每筆測試資料裡要排序的元素數量（500）。
 - `CASES`：總共要做幾組測試（5 組）。
 - `RNGKEYS`：隨機 key，用於亂數測資。
 - `INSKEYS`：用於 Insertion Sort 最差情境的資料（由大到小，`CASE_ITEMS - i`）。
 - `UNSORTED`, `SORTED`, `TIMEREC`：三個檔案的儲存路徑（未排序、排序後、計時紀錄）。
 
+---
+
+### 二. 記憶體與時間紀錄函式定義
+
+```cpp
+// memory usage check
+SIZE_T memoryUsage() {
+    PROCESS_MEMORY_COUNTERS pmc;
+    GetProcessMemoryInfo(GetCurrentProcess(), &pmc, sizeof(pmc));
+    return pmc.WorkingSetSize;
+}
+
+// time recording
+double recordTime(function<void()> sortFunc) {
+    auto start = chrono::high_resolution_clock::now();
+    sortFunc();  // 執行排序
+    auto end = chrono::high_resolution_clock::now();
+    chrono::duration<double, milli> duration = end - start;
+    return duration.count();
+}
+```
+
+#### 說明：
+
+##### `memoryUsage()` — 取得目前記憶體使用量
+
+- 使用 Windows API：
+  - `GetProcessMemoryInfo()`：取得目前執行程序的記憶體資訊。
+  - `pmc.WorkingSetSize`：代表目前正在使用的實體記憶體（Working Set），以「位元組 (bytes)」為單位。
+- 回傳型別是 `SIZE_T`，通常對應 `size_t`，足以儲存記憶體大小。
+
+這個函式的用途是在排序前後量測記憶體用量。
+
+---
+
+#####  `recordTime()` — 執行排序並記錄所花時間
+
+- 接收一個 `function<void()>` 作為參數，也就是接受任何無參數、無回傳值的函式（或 lambda）。
+- 使用 `chrono::high_resolution_clock` 精準地記錄時間。
+- 回傳值是毫秒（`duration<double, milli>`）。
+
+讓每種排序方法都可以包裝成 lambda 傳入這個函式中，方便統一計時。
 
 ---
 
