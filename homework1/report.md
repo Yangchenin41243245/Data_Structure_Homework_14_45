@@ -119,9 +119,6 @@ auto duration = chrono::duration_cast<chrono::microseconds>(end - start);
 
 ## 程式實作
 
-當然可以，讓我們來看 **區塊一**：
-
----
 
 ### 一. 標頭與基本設置
 
