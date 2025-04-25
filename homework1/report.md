@@ -288,6 +288,135 @@ void heapSort(vector<int>& arr);
    ```
    記憶體差異以 KB 為單位輸出，方便閱讀。
 
+好，我們繼續以嚴謹方式分析 **區塊四**，也就是四個排序演算法的實作。程式碼如下：
+
+---
+
+### 四. 排序法實作
+
+```cpp
+void insertionSort(vector<int>& arr) {
+    for (int i = 1; i < arr.size(); ++i) {
+        int key = arr[i], j = i - 1;
+        while (j >= 0 && arr[j] > key) arr[j + 1] = arr[j--];
+        arr[j + 1] = key;
+    }
+}
+
+void quickSort(vector<int>& arr) {
+    function<void(int, int)> sort = [&](int l, int r) {
+        if (l >= r) return;
+        int pivot = arr[r], i = l - 1;
+        for (int j = l; j < r; ++j)
+            if (arr[j] < pivot) swap(arr[++i], arr[j]);
+        swap(arr[++i], arr[r]);
+        sort(l, i - 1);
+        sort(i + 1, r);
+    };
+    sort(0, arr.size() - 1);
+}
+
+void mergeSort(vector<int>& arr) {
+    function<void(int, int)> sort = [&](int l, int r) {
+        if (l >= r) return;
+        int m = (l + r) / 2;
+        sort(l, m); sort(m + 1, r);
+        vector<int> tmp;
+        int i = l, j = m + 1;
+        while (i <= m && j <= r)
+            tmp.push_back(arr[i] < arr[j] ? arr[i++] : arr[j++]);
+        while (i <= m) tmp.push_back(arr[i++]);
+        while (j <= r) tmp.push_back(arr[j++]);
+        for (int k = 0; k < tmp.size(); ++k) arr[l + k] = tmp[k];
+    };
+    sort(0, arr.size() - 1);
+}
+
+void heapSort(vector<int>& arr) {
+    function<void(int, int)> heapify = [&](int n, int i) {
+        int largest = i, l = 2 * i + 1, r = 2 * i + 2;
+        if (l < n && arr[l] > arr[largest]) largest = l;
+        if (r < n && arr[r] > arr[largest]) largest = r;
+        if (largest != i) {
+            swap(arr[i], arr[largest]);
+            heapify(n, largest);
+        }
+    };
+    int n = arr.size();
+    for (int i = n / 2 - 1; i >= 0; --i) heapify(n, i);
+    for (int i = n - 1; i > 0; --i) {
+        swap(arr[0], arr[i]);
+        heapify(i, 0);
+    }
+}
+```
+
+#### 說明：
+
+##### 1.Insertion Sort — 插入排序（O(n²)）
+
+```cpp
+for (int i = 1; i < arr.size(); ++i) {
+    int key = arr[i], j = i - 1;
+    while (j >= 0 && arr[j] > key) arr[j + 1] = arr[j--];
+    arr[j + 1] = key;
+}
+```
+
+- 對每一個元素，往前比較並插入至適當位置。
+- 穩定排序，適合幾乎排序好的資料。
+- **時間複雜度**：平均與最壞為 O(n²)，最佳為 O(n)。
+
+---
+
+##### 2.Quick Sort — 快速排序（平均 O(n log n)）
+
+```cpp
+function<void(int, int)> sort = [&](int l, int r) {
+    if (l >= r) return;
+    int pivot = arr[r], i = l - 1;
+    for (int j = l; j < r; ++j)
+        if (arr[j] < pivot) swap(arr[++i], arr[j]);
+    swap(arr[++i], arr[r]);
+    sort(l, i - 1);
+    sort(i + 1, r);
+};
+sort(0, arr.size() - 1);
+```
+
+- 以最後一個元素作為 pivot。
+- 小於 pivot 的元素會被移到左側，遞迴排序。
+- 不穩定排序，**在最壞情況（遞增/遞減序列）會退化為 O(n²)**，但一般實務中表現極佳。
+
+---
+
+##### 3.Merge Sort — 合併排序（穩定、O(n log n)）
+
+```cpp
+function<void(int, int)> sort = [&](int l, int r) {
+    if (l >= r) return;
+    int m = (l + r) / 2;
+    sort(l, m); sort(m + 1, r);
+    ...
+};
+```
+
+- 將陣列遞迴切半後合併，合併時保持排序。
+- **空間複雜度 O(n)**，需要額外暫存空間。
+- 穩定排序，適合資料量大且對穩定性有要求的應用。
+
+---
+
+##### 4.Heap Sort — 堆積排序（不穩定、O(n log n)）
+
+```cpp
+function<void(int, int)> heapify = [&](int n, int i) { ... };
+```
+
+- 先建 max heap，再依序將最大值交換到尾端並縮小 heap 區間。
+- 不需要額外空間，**空間複雜度 O(1)**。
+- 時間複雜度穩定為 O(n log n)，但常數大、快取不友善，實務上不如 QuickSort 快。
+
 ---
 
 ## 測試與驗證
