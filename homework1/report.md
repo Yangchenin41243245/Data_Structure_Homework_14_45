@@ -457,10 +457,7 @@ int main(void)
 
 ## 測試與驗證
 
-
-# Sorting Algorithm Performance Tables
-
-## Worst-case Performance (Time in Microseconds)
+## 最壞執行時間表格 Worst-case Performance (Time in Microseconds)
 
 | Data Size | Insertion Sort | Quick Sort | Merge Sort | Heap Sort |
 |-----------|----------------|------------|------------|-----------|
@@ -473,7 +470,7 @@ int main(void)
 
 ![image](https://github.com/Yangchenin41243245/Data_Structure_Homework_14_45/blob/proto2/homework1/src/pics/worst.png)
 
-## Average-case Performance (Time in Microseconds)
+## 平均執行時間表格 Average-case Performance (Time in Microseconds)
 
 | Data Size | Insertion Sort | Quick Sort | Merge Sort | Heap Sort |
 |-----------|----------------|------------|------------|-----------|
