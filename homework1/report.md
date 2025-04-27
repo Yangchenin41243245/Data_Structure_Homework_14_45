@@ -1,91 +1,146 @@
-# 41243245
+# 41243214 
+& 41243245
 # 排序演算法效能分析報告
 
 ## 目錄
 
-### 時鐘精度
-### 解題說明
-### 效能分析
-### 程式實作
-### 測試與驗證
-### 申論及開發報告
----
-
-## 時鐘精度
-
-本程式使用 C++ 的 `<chrono>` 標準函式庫中的 `high_resolution_clock` 進行計時，使用 `duration_cast<microseconds>` 將執行時間換算為「微秒」(1 微秒 = 0.000001 秒)。提供足夠高的解析度，以正確測量常見排序演算法在中等規模資料量（如 5000 筆資料）下的執行效能。
+### 1. 解題說明
+### 2. 時鐘精度
+### 3. 效能分析
+### 4. 程式實作
+### 5. 測試與驗證
+### 6. 申論及開發報告
 
 ---
 
 ## 解題說明
-### Heap Sort 最壞情況測試資料的隨機排列方式
-為了模擬 Heap Sort 的最壞情況，本程式在 `makeCases()` 函數中對 HEAP 模式使用了 **隨機排列【Random Permutation】** 方式生成輸入資料：
 
-```cpp
-for (int i = CASE_ITEMS - 1; i >= 2; i--)
-{
-    int j = rand() % i + 1;
-    swap(array[i], array[j]);
-}
-```
+本作業旨在實作與分析四種排序演算法的效能，並設計一個根據輸入資料大小選擇最適合排序法的綜合排序函式（Composite Sort Function）。
+作業核心在於針對不同輸入資料大小與特性（最壞情況與平均情況）進行排序效能測試，並比較各排序法在時間與記憶體使用上的表現。
 
-這段程式碼等像於 **Fisher-Yates shuffle** 隨機打亂法，使輸入數列在統計上接近 Heap Sort 的最壞或平均情況。
+本次實作包含以下五種排序方法：
+
+1. **Insertion Sort**  
+   逐一將元素插入已排序好的子陣列，最壞情況為反向排序。
+
+2. **Quick Sort**  
+   採用分治法將資料切分並遞迴排序，使用第一個元素作為 pivot，最壞情況發生於切分極不平均時。
+
+3. **Merge Sort**  
+   將資料拆分後合併排序，最壞情況相對穩定，時間複雜度為 O(n log n)，採用遞迴式實作。
+
+4. **Heap Sort**  
+   利用最大堆結構，每次將最大值移至尾端排序，對於初始排列較亂的資料效能佳。
+
+5. **Composite Sort**  
+   根據輸入資料大小動態選擇排序方法：小於等於 32 個元素使用 Insertion Sort，小於等於 1000 個元素使用 Merge Sort，小於等於 5000 個元素使用 Heap Sort，否則使用 Quick Sort。
+
+透過 `std::chrono` 計時與 Windows API 測量記憶體使用量，將各排序法在不同 `n` 值下的效能進行數據分析與圖表視覺化，最終統整出各排序法的適用情境與建議使用範圍。Composite Sort 旨在結合各排序法的優勢，針對不同資料規模提供最佳效能。
 
 ---
 
-## Merge Sort 最壞情況測試資料生成方式
+## 時鐘精度
 
-Merge Sort 的最壞情況並不會明顯受特定輸入順序影響，因此程式中使用了 **遞減排序【由大至小】** 的資料生成方式作為最壞情況的模擬輸入：
+本次作業中，排序演算法的效能主要透過時間消耗（microseconds）進行衡量。為了準確記錄各排序方法的執行時間，我們使用 C++ 標準函式庫中的 `<chrono>` 模組中的 `std::chrono::high_resolution_clock` 作為計時工具，其精度可達微秒等級，適合用於微小時間單位的效能分析。
+
+### 使用方式
+
+計時範例如下：
 
 ```cpp
-if (mode == "INSERTION" || mode == "QUICK" || mode == "MERGE")
-    key = CASE_ITEMS - i;
+auto start = chrono::high_resolution_clock::now();
+// 排序函式執行
+auto end = chrono::high_resolution_clock::now();
+auto duration = chrono::duration_cast<chrono::microseconds>(end - start);
 ```
 
-這樣生成的輸入數列為遞減序列，例如 [5000, 4999, 4998, ..., 1]，對 Merge Sort 難以顯著抽慮效能，但可視為統一的 worst-case 測試資料來源。
+透過 `chrono::duration_cast` 可精確取得兩個時間點之間的間隔（此處為微秒）。Composite Sort 的計時方式與其他排序法一致，確保比較公平性。
+
+### 測量誤差與處理方式
+
+由於在小筆數資料（如 n = 500）時，排序執行時間可能低於計時器可穩定測量的範圍，導致計時結果為 0 或波動大。為解決此問題，採用以下策略：
+
+- **重複執行多次後取平均時間**，以降低測量誤差。例如對某個排序函式執行 1000 次並除以總次數：
+  
+  ```cpp
+  int repeat = 1000;
+  auto start = chrono::high_resolution_clock::now();
+  for (int i = 0; i < repeat; ++i)
+      yourSortFunction(arr);
+  auto end = chrono::high_resolution_clock::now();
+  auto avg_duration = chrono::duration_cast<chrono::microseconds>(end - start).count() / repeat;
+  ```
+
+- 在正式測試中，我們確保對每組測資僅進行一次排序測試（不重複），以模擬實際使用情境。當發現個別排序法（如 Insertion Sort 或 Composite Sort 在小資料量時）耗時極短時，再單獨進行多次測量以取得更精確數據。
+
+### 實驗觀察
+
+經過測試發現，對於筆數小於 1000 的資料排序，Insertion Sort 和 Composite Sort（選擇 Insertion Sort 的情況）執行時間可能會出現 0 μs 的情形。透過上述方法可有效改善這一問題，使測量更為穩定與可信。
 
 ---
 
 ## 效能分析
 
-### 平均執行時間表格
+#### Insertion Sort
+- **時間複雜度**：
+  - **Worst-case**：O(n²)，當輸入為逆序（程式中生成逆序資料），每次插入需移動所有前元素。
+  - **Average-case**：O(n²)，因每次插入平均需比較和移動約 n/2 個元素。
+- **空間複雜度**：
+  - O(1)，原地排序，僅需常數額外空間（`temp` 變數）。
+- **程式特性**：簡單實現，未優化比較或移動，適合小陣列（n ≤ 32）。
 
-| 資料數量 (n) | 插入排序 (Insertion) | 快速排序 (Quick) | 合併排序 (Merge) | 堆積排序 (Heap) |
-|--------------|-----------------------|-------------------|------------------|-----------------|
-| 500          | 419.2                 | 151.5             | 1921.1           | 73.8            |
-| 1000         | 1688.7                | 609.7             | 4306.6           | 140.9           |
-| 2000         | 6238.2                | 2264.2            | 11828.0          | 336.8           |
-| 3000         | 14819.7               | 5525.9            | 17096.2          | 562.4           |
-| 4000         | 23682.4               | 8861.6            | 24187.3          | 739.1           |
-| 5000         | 38788.5               | 14426.6           | 30609.3          | 946.4           |
-| 10000        | 144778.2              | 53740.3           | 47289.1          | 2221.4          |
+#### Quick Sort
+- **時間複雜度**：
+  - **Worst-case**：O(n²)，當 pivot 選擇不佳（程式中固定選第一元素）且輸入逆序，分割極不平衡。
+  - **Average-case**：O(n log n)，隨機輸入下，分割接近均等。
+- **空間複雜度**：
+  - O(log n)，因遞迴調用棧（平均 O(log n) 層，Worst-case 可達 O(n)）。
+- **程式特性**：固定 pivot（`arr[left]`）導致 Worst-case 頻發，未採用隨機 pivot 或小陣列插入排序優化。
 
-![image](https://github.com/Yangchenin41243245/Data_Structure_Homework_14_45/blob/main/homework1/src/pics/pic03.png)
+#### Merge Sort
+- **時間複雜度**：
+  - **Worst-case**：O(n log n)，分割和合併均穩定，與輸入無關。
+  - **Average-case keypad**：O(n log n)，合併操作固定。
+- **空間複雜度**：
+  - O(n)，需額外陣列儲存合併結果（程式中 `vector<entry>` 動態分配）。
+- **程式特性**：遞迴實現，穩定但記憶體開銷較大，適合中型資料（32 < n ≤ 1000）。
 
-### 最壞執行時間表格
+#### Heap Sort
+- **時間複雜度**：
+  - **Worst-case**：O(n log n)，建堆 O(n)，每次調整堆 O(log n)，共 n 次。
+  - **Average-case**：O(n log n)，對輸入不敏感。
+- **空間複雜度**：
+  - O(1)，原地排序，僅需常數額外空間。
+- **程式特性**：標準最大堆實現，穩定且高效，適合中大型資料（1000 < n ≤ 5000）。
 
-| 資料數量 (n) | 插入排序 (Insertion) | 快速排序 (Quick) | 合併排序 (Merge) | 堆積排序 (Heap) |
-|--------|-----------------|-----------------|-----------------|-----------------|
-| 500    | 623             | 155             | 2643            | 101             |
-| 1000   | 2478            | 792             | 5206            | 165             |
-| 2000   | 7742            | 2738            | 14552           | 418             |
-| 3000   | 17826           | 5405            | 19880           | 754             |
-| 4000   | 26746           | 9366            | 31271           | 790             |
-| 5000   | 47480           | 18947           | 30609           | 946             |
-| 10000  | 150250          | 55224           | 71520           | 2422            |
+#### Composite Sort
+- **時間複雜度**：
+  - **Worst-case**：取決於選擇的排序法：
+    - n ≤ 32：O(n²)（Insertion Sort）
+    - 32 < n ≤ 1000：O(n log n)（Merge Sort）
+    - 1000 < n ≤ 5000：O(n log n)（Heap Sort）
+    - n > 5000：O(n²)（Quick Sort，Worst-case）
+  - **Average-case**：O(n log n) 為主，當 n > 5000 時接近 Quick Sort 的 O(n log n)。
+- **空間複雜度**：
+  - 取決於選擇的排序法：
+    - Insertion Sort：O(1)
+    - Merge Sort：O(n)
+    - Heap Sort：O(1)
+    - Quick Sort：O(log n)
+- **程式特性**：根據資料大小動態選擇排序法，結合各算法優勢，適用於多種資料規模。
 
-![image](https://github.com/Yangchenin41243245/Data_Structure_Homework_14_45/blob/main/homework1/src/pics/pic04.png)
+### 總結
+- **Insertion Sort**：時間複雜度高（O(n²)），但空間需求最低，適合小資料。
+- **Quick Sort**：Average-case 高效（O(n log n)），但程式實現易退化到 O(n²)，空間需遞迴棧。
+- **Merge Sort**：時間穩定（O(n log n)），但空間需求高（O(n)）。
+- **Heap Sort**：時間和空間均優（O(n log n), O(1)），為中大型資料良好選擇。
+- **Composite Sort**：根據資料大小選擇最佳排序法，平衡時間與空間需求，適合廣泛應用場景。
 
-### 時間複雜度趨勢分析
-
-- 插入排序：明顯呈現 $O(n^2)$ 成長，效能下降快速。
-- 快速排序：雖然最壞情況為 $O(n^2)$，但在平均情況下趨近 $O(n \log n)$，表現穩定。
-- 合併排序：始終維持 $O(n \log n)$，在大型資料下表現穩定但稍高。
-- 堆積排序：執行時間隨 $n$ 緩慢上升，符合 $O(n \log n)$，在測試中表現最佳。
+---
 
 ## 程式實作
 
-### 1. 頭文件與定義
+### 一. 標頭與基本設置
 
 ```cpp
 #include <iostream>
@@ -94,124 +149,147 @@ if (mode == "INSERTION" || mode == "QUICK" || mode == "MERGE")
 #include <ctime>
 #include <cstdlib>
 #include <chrono>
+#include <windows.h>
+#include <psapi.h>
+#include <string>
+#pragma comment(lib, "psapi.lib")
+
 using namespace std;
-using namespace std::chrono;
+using namespace chrono;
 
-#define CASE_ITEMS 5000 // number of items in each case
-#define CASES 10      // number of cases
-#define RNGKEYS rand() % CASE_ITEMS
-#define INSKEYS CASE_ITEMS - i // worst case for insertion sort
-#define UNSORTED "./tosort.txt"
-#define SORTED "./sorted.txt"
-#define TIMEREC "./timer.txt"
+// 設定常數
+#define CASE_ITEMS 6000
+#define CASES 5
+#define UNSORTED "D:/work/sort/tosort.txt"
+#define SORTED "D:/work/sort/sorted.txt"
+#define TIMEREC "D:/work/sort/timer.txt"
+#define COMPOSITE_TIMEREC "D:/work/sort/composite_timer.txt"
 ```
 
-#### 解釋
-- **功能**：引入必要的 C++ 標準庫，包括輸入輸出（`<iostream>`）、動態陣列（`<vector>`）、計時（`<chrono>`）等，並定義常數。
-- **常數定義**：
-  - `CASE_ITEMS`：每個測試案例的資料量（5000）。
-  - `CASES`：測試案例數（10）。
-  - `RNGKEYS` 和 `INSKEYS`：用於生成隨機鍵值和插入排序的最壞情況鍵值。
-  - 文件路徑（`UNSORTED`, `SORTED`, `TIMEREC`）：用於儲存未排序、已排序和計時結果。
+#### 說明：
+
+##### 引入標頭檔
+- `iostream`, `vector`, `algorithm`, `string`：處理輸出、容器、演算法與字串。
+- `ctime`, `cstdlib`：處理隨機數與時間。
+- `chrono`：計時用，計算排序時間。
+- `windows.h`, `psapi.h`：Windows API，用來查詢記憶體使用情況。
+
+##### `#pragma comment(lib, "psapi.lib")`
+自動連結 `psapi.lib`，提供記憶體管理函式。
+
+##### #define 指引
+- `CASE_ITEMS`：每筆測試資料的元素數量（6000）。
+- `CASES`：測試用例數（5）。
+- `UNSORTED`, `SORTED`, `TIMEREC`, `COMPOSITE_TIMEREC`：檔案路徑，分別儲存未排序資料、排序後資料、排序時間記錄及 Composite Sort 時間記錄。
+
 ---
 
-### 2. 資料結構定義
+### 二. 資料結構與記憶體分析
 
 ```cpp
-struct node
-{
-    int data;
-};
+struct node { int data; };
 
-class entry
-{
+class entry {
 public:
-    friend class node;
     long key;
-    entry(long k, node *d)
-    {
-        key = k;
-        data = d;
-    }
-    void setkey(int k) 
-    {
-        key = k; 
-    }
-    void outputkey(FILE *file)
-    {
-        fprintf(file, " key: %ld\n", key);
-    }
+    entry(long k, node* d) { key = k; data = d; }
+    void outputkey(FILE* file) { fprintf(file, " key: %ld\n", key); }
 private:
-    node *data;
+    node* data;
 };
+
+struct result {
+    int64_t timer;
+    vector<entry> arr2;
+};
+
+string printMem(int state) {
+    PROCESS_MEMORY_COUNTERS memInfo;
+    GetProcessMemoryInfo(GetCurrentProcess(), &memInfo, sizeof(memInfo));
+    unsigned long long memUsage = memInfo.WorkingSetSize / 1024;
+    unsigned long long memPeak = memInfo.PeakWorkingSetSize / 1024;
+    if (state == 0) return "Memory usage: " + to_string(memUsage) + " KB\n";
+    else return "Peak memory usage: " + to_string(memPeak) + " KB\n";
+}
 ```
 
-#### 解釋
-- **功能**：
-  - `node`：簡單結構，包含一個整數資料欄位。
-  - `entry`：主要資料結構，包含鍵值（`key`）和指向 `node` 的指標，用於排序和輸出。
+#### 說明：
+
+##### 資料結構
+- `node`：簡單結構，包含一個整數 `data`。
+- `entry`：包含 `key`（排序依據）和指向 `node` 的指標，提供 `outputkey` 函式輸出鍵值。
+- `result`：儲存排序結果（`arr2`）和執行時間（`timer`）。
+
+##### `memoryUsage()` — 取得目前記憶體使用量
+
+- 使用 Windows API：
+  - `GetProcessMemoryInfo()`：取得目前執行程序的記憶體資訊。
+  - `pmc.WorkingSetSize`：代表目前正在使用的實體記憶體（Working Set），以「位元組 (bytes)」為單位。
+- 回傳型別是 `SIZE_T`，通常對應 `size_t`，足以儲存記憶體大小。
+
+這個函式的用途是在排序前後量測記憶體用量。
+
+#####  `recordTime()` — 執行排序並記錄所花時間
+
+- 接收一個 `function<void()>` 作為參數，也就是接受任何無參數、無回傳值的函式（或 lambda）。
+- 使用 `chrono::high_resolution_clock` 精準地記錄時間。
+- 回傳值是毫秒（`duration<double, milli>`）。
+
+讓每種排序方法都可以包裝成 lambda 傳入這個函式中，方便統一計時。
+
+##### `printMem`
+- 使用 `GetProcessMemoryInfo` 獲取記憶體使用量。
+- `state == 0` 返回當前記憶體使用量，`state == 1` 返回峰值記憶體使用量，單位為 KB。
 
 ---
 
-### 3. 插入排序實現
+### 三. 排序函式實作
 
+#### Insertion Sort
 ```cpp
-void InsertionCore(entry *temp, vector<entry>&arr, int i)
-{
-    entry a = *temp;
-    int pos = i;
-    while(i >= 0 && a.key < arr[i].key)
-    {
-        arr[i + 1] = arr[i];
-        i--;
-    }
-    arr[i+1] = a;
-}
-
-unsigned long InsertionSort(vector<entry> &arr, int casenum)
-{
-    cout << "Start insertion sort\n";
+result InsertionSort(vector<entry> arr, int casenum) {
+    result r;
+    FILE* file = fopen(TIMEREC, "a");
     auto timer = high_resolution_clock::now();
-    for (int j = 2; j < arr.size(); j++)
-    {
-        entry*temp = &arr[j];
-        InsertionCore(temp, arr, j-1);
+    string memInit = printMem(0);
+    fprintf(file, "Start Insertion case %d\n[Init] %s", casenum, memInit.c_str());
+
+    for (int i = 1; i < arr.size(); i++) {
+        entry temp = arr[i];
+        int j = i - 1;
+        while (j >= 0 && arr[j].key > temp.key) {
+            arr[j + 1] = arr[j];
+            j--;
+        }
+        arr[j + 1] = temp;
     }
+
     auto stop = high_resolution_clock::now();
     auto dur = duration_cast<microseconds>(stop - timer);
-    cout << "Sorted array in " << dur.count() << " microseconds\n";
-    FILE *file = fopen(TIMEREC, "a");
-    fprintf(file, "Sorted case #%d with %lu items in %ld microseconds with Insertion\n",
-            casenum, CASE_ITEMS, dur.count());
-    if (file != nullptr)
-    {
-        fclose(file);
-    }
-    return dur.count();
+    r.arr2 = arr;
+    r.timer = dur.count();
+    string memFin = printMem(1);
+    fprintf(file, "Finished in %lld us\n[Final] %s\n", r.timer, memFin.c_str());
+    fclose(file);
+    return r;
 }
 ```
 
-#### 解釋
-- **功能**：
-  - `InsertionCore`：核心插入邏輯，將元素插入到正確位置。
-  - `InsertionSort`：完整的插入排序實現，記錄執行時間並輸出到文件。
-- **計時**：使用 `<chrono>` 的高精度計時器，單位為微秒。
+- 對每一個元素，往前比較並插入至適當位置。
+- 穩定排序，適合幾乎排序好的資料。
+- **時間複雜度**：平均與最壞為 O(n²)，最佳為 O(n)。
 
 ---
 
-### 4. 快速排序實現
-
+#### Quick Sort
 ```cpp
-void QuickSortCore(vector<entry>&arr, int left, int right)
-{
-    if (left < right)
-    {
-        entry *pivot = &arr[left];
+void QuickSortCore(vector<entry>& arr, int left, int right) {
+    if (left < right) {
+        entry pivot = arr[left];
         int i = left, j = right + 1;
-        do
-        {
-            do i++; while (arr[i].key < pivot->key);
-            do j--; while (arr[j].key > pivot->key);
+        do {
+            do i++; while (i <= right && arr[i].key < pivot.key);
+            do j--; while (arr[j].key > pivot.key);
             if (i < j) swap(arr[i], arr[j]);
         } while (i < j);
         swap(arr[left], arr[j]);
@@ -220,216 +298,266 @@ void QuickSortCore(vector<entry>&arr, int left, int right)
     }
 }
 
-unsigned long QuickSort(vector<entry> &arr, int casenum)
-{
-    cout << "Start quick sort\n";
+result QuickSort(vector<entry> arr, int casenum) {
+    result r;
+    FILE* file = fopen(TIMEREC, "a");
     auto timer = high_resolution_clock::now();
-    QuickSortCore(arr, 0, arr.size()-1);
+    string memInit = printMem(0);
+    fprintf(file, "Start Quick case %d\n[Init] %s", casenum, memInit.c_str());
+
+    QuickSortCore(arr, 0, arr.size() - 1);
+
     auto stop = high_resolution_clock::now();
     auto dur = duration_cast<microseconds>(stop - timer);
-    cout << "Sorted array in " << dur.count() << " microseconds\n";
-    FILE *file = fopen(TIMEREC, "a");
-    fprintf(file, "Sorted case #%d with %lu items in %ld microseconds with Quick\n",
-            casenum, CASE_ITEMS, dur.count());
-    if(file!=nullptr) fclose(file);
-    return dur.count();
+    r.arr2 = arr;
+    r.timer = dur.count();
+    string memFin = printMem(1);
+    fprintf(file, "Finished in %lld us\n[Final] %s\n", r.timer, memFin.c_str());
+    fclose(file);
+    return r;
 }
 ```
 
-#### 解釋
-- **功能**：
-  - `QuickSortCore`：遞迴實現快速排序，使用第一個元素作為樞軸（pivot）。
-  - `QuickSort`：啟動排序並計時。
+- 以最後一個元素作為 pivot。
+- 小於 pivot 的元素會被移到左側，遞迴排序。
+- 不穩定排序，**在最壞情況（遞增/遞減序列）會退化為 O(n²)**，但一般實務中表現極佳。
+
 ---
 
-### 5. 合併排序實現
-
+#### Merge Sort
 ```cpp
-vector<entry> MergeCore(vector<entry>& a, vector<entry>& b)
-{
+vector<entry> MergeCore(vector<entry> a, vector<entry> b) {
     vector<entry> c;
-    c.reserve(a.size() + b.size());
-    auto it_a = a.begin();
-    auto it_b = b.begin();
-    while (it_a != a.end() && it_b != b.end())
-    {
-        if (it_a->key < it_b->key)
-        {
-            c.push_back(std::move(*it_a));
-            ++it_a;
-        }
-        else
-        {
-            c.push_back(std::move(*it_b));
-            ++it_b;
-        }
+    auto it_a = a.begin(), it_b = b.begin();
+    while (it_a != a.end() && it_b != b.end()) {
+        if (it_a->key < it_b->key) c.push_back(*it_a++);
+        else c.push_back(*it_b++);
     }
-    while (it_a != a.end()) { c.push_back(std::move(*it_a)); ++it_a; }
-    while (it_b != b.end()) { c.push_back(std::move(*it_b)); ++it_b; }
+    while (it_a != a.end()) c.push_back(*it_a++);
+    while (it_b != b.end()) c.push_back(*it_b++);
     return c;
 }
 
-vector<entry> MergeCut(vector<entry>arr)
-{
-    if(arr.size() <= 1) { return arr; }
-    vector<entry> left, right;
+vector<entry> MergeCut(vector<entry> arr) {
+    if (arr.size() <= 1) return arr;
     int mid = arr.size() / 2;
-    for (int i = 0; i < mid; i++) left.push_back(arr[i]);
-    for (int i = mid; i < arr.size(); i++) right.push_back(arr[i]);
-    left = MergeCut(left);
-    right = MergeCut(right);
-    return MergeCore(left, right);
+    vector<entry> left(arr.begin(), arr.begin() + mid);
+    vector<entry> right(arr.begin() + mid, arr.end());
+    return MergeCore(MergeCut(left), MergeCut(right));
 }
 
-unsigned long MergeSort(vector<entry>&arr, int casenum)
-{
-    cout << "Start merge sort\n";
+result MergeSort(vector<entry> arr, int casenum) {
+    result r;
+    FILE* file = fopen(TIMEREC, "a");
     auto timer = high_resolution_clock::now();
+    string memInit = printMem(0);
+    fprintf(file, "Start Merge case %d\n[Init] %s", casenum, memInit.c_str());
+
     arr = MergeCut(arr);
+
     auto stop = high_resolution_clock::now();
     auto dur = duration_cast<microseconds>(stop - timer);
-    cout << "Sorted array in " << dur.count() << " microseconds\n";
-    FILE *file = fopen(TIMEREC, "a");
-    fprintf(file, "Sorted case #%d with %lu items in %ld microseconds with Merge\n",
-            casenum, CASE_ITEMS, dur.count());
-    if(file!=nullptr) fclose(file);
-    return dur.count();
+    r.arr2 = arr;
+    r.timer = dur.count();
+    string memFin = printMem(1);
+    fprintf(file, "Finished in %lld us\n[Final] %s\n", r.timer, memFin.c_str());
+    fclose(file);
+    return r;
 }
 ```
 
-#### 解釋
-- **功能**：
-  - `MergeCore`：合併兩個已排序子陣列。
-  - `MergeCut`：遞迴分割陣列。
-  - `MergeSort`：啟動排序並計時。
+- 將陣列遞迴切半後合併，合併時保持排序。
+- **空間複雜度 O(n)**，需要額外暫存空間。
+- 穩定排序，適合資料量大且對穩定性有要求的應用。
 
 ---
 
-## 6. 堆積排序實現
-
+#### Heap Sort
 ```cpp
-void heapify(vector<entry>& arr, int n, int i)
-{
-    int max = i;
-    int left = 2 * i + 1;
-    int right = 2 * i + 2;
-    if (left < n && arr[left].key > arr[max].key) max = left;
-    if (right < n && arr[right].key > arr[max].key) max = right;
-    if (max != i)
-    {
-        swap(arr[i], arr[max]);
-        heapify(arr, n, max);
+void heapify(vector<entry>& arr, int n, int i) {
+    int largest = i, l = 2 * i + 1, r = 2 * i + 2;
+    if (l < n && arr[l].key > arr[largest].key) largest = l;
+    if (r < n && arr[r].key > arr[largest].key) largest = r;
+    if (largest != i) {
+        swap(arr[i], arr[largest]);
+        heapify(arr, n, largest);
     }
 }
 
-unsigned long HeapSort(vector<entry>&arr, int casenum)
-{
-    cout << "Start heap sort\n";
+result HeapSort(vector<entry> arr, int casenum) {
+    result r;
+    FILE* file = fopen(TIMEREC, "a");
     auto timer = high_resolution_clock::now();
+    string memInit = printMem(0);
+    fprintf(file, "Start Heap case %d\n[Init] %s", casenum, memInit.c_str());
+
     int n = arr.size();
     for (int i = n / 2 - 1; i >= 0; i--) heapify(arr, n, i);
-    for (int i = n - 1; i > 0; i--)
-    {
+    for (int i = n - 1; i > 0; i--) {
         swap(arr[0], arr[i]);
         heapify(arr, i, 0);
     }
+
     auto stop = high_resolution_clock::now();
     auto dur = duration_cast<microseconds>(stop - timer);
-    cout << "Sorted array in " << dur.count() << " microseconds\n";
-    FILE *file = fopen(TIMEREC, "a");
-    fprintf(file, "Sorted case #%d with %lu items in %ld microseconds with Heap\n",
-            casenum, CASE_ITEMS, dur.count());
-    if(file!=nullptr) fclose(file);
-    return dur.count();
+    r.arr2 = arr;
+    r.timer = dur.count();
+    string memFin = printMem(1);
+    fprintf(file, "Finished in %lld us\n[Final] %s\n", r.timer, memFin.c_str());
+    fclose(file);
+    return r;
 }
 ```
 
-#### 解釋
-- **功能**：
-  - `heapify`：維護最大堆性質。
-  - `HeapSort`：建構最大堆並逐步排序。
+- 先建 max heap，再依序將最大值交換到尾端並縮小 heap 區間。
+- 不需要額外空間，**空間複雜度 O(1)**。
+- 時間複雜度穩定為 O(n log n)，但常數大、快取不友善，實務上不如 QuickSort 快。
 
 ---
 
-### 7. 主程式與測試資料生成
+#### Composite Sort
+```cpp
+result CompositeSort(vector<entry> arr, int casenum) {
+    FILE* file = fopen(COMPOSITE_TIMEREC, "a");
+    auto timer = high_resolution_clock::now();
+    string memInit = printMem(0);
+    fprintf(file, "Start Composite case %d\n[Init] %s", casenum, memInit.c_str());
+
+    result r;
+    if (arr.size() <= 32) r = InsertionSort(arr, casenum);
+    else if (arr.size() <= 1000) r = MergeSort(arr, casenum);
+    else if (arr.size() <= 5000) r = HeapSort(arr, casenum);
+    else r = QuickSort(arr, casenum);
+
+    auto stop = high_resolution_clock::now();
+    auto dur = duration_cast<microseconds>(stop - timer);
+    string memFin = printMem(1);
+    fprintf(file, "Composite finished in %lld us\n[Final] %s\n", dur.count(), memFin.c_str());
+    fclose(file);
+    return r;
+}
+```
+
+#### 說明：
+- **Insertion Sort**：簡單實現，適合小資料，記錄初始與結束記憶體使用量。
+- **Quick Sort**：使用第一元素作為 pivot，未採用 median-of-three，導致最壞情況效能較差。
+- **Merge Sort**：遞迴實現，非迭代式，空間需求較高。
+- **Heap Sort**：標準最大堆實現，空間效率高。
+- **Composite Sort**：根據資料大小選擇最適排序法，記錄獨立時間與記憶體使用量，輸出至 `composite_timer.txt`。
+
+---
+
+### 四. 主程式與測試流程
 
 ```cpp
-void makeCases(int cases, vector<vector<entry>> &superarray, FILE *unsortedfile, string mode)
-{
-    for (int c = 0; c < cases; c++)
-    {
-        vector<entry> array;
-        long key;
-        fprintf(unsortedfile, "\nCase %d with %lu items:\n", c + 1, CASE_ITEMS);
-        for (int i = 0; i < CASE_ITEMS; i++)
-        {
-            node *n = new node;
-            if (mode == "INSERTION" || mode == "QUICK" || mode == "MERGE")
-                key = INSKEYS; // worst case = max -> min
-            else if (mode == "RANDOM")
-                key = RNGKEYS;
-            else
-                key = i;
-            entry e(key, n);
-            array.push_back(e);
-        }
-        if (mode == "HEAP")
-        {
-            for (int i = CASE_ITEMS - 1; i >= 2; i--)
-            {
-                int j = rand() % i + 1;
-                swap(array[i], array[j]);
-            }
-        }
-        for (int i = 0; i < CASE_ITEMS; i++)
-            array[i].outputkey(unsortedfile);
-        superarray.push_back(array);
-    }
-}
+int main() {
+    remove(SORTED);
+    remove(UNSORTED);
+    remove(TIMEREC);
+    remove(COMPOSITE_TIMEREC);
 
-int main(void)
-{
-    remove(SORTED); remove(UNSORTED); remove(TIMEREC);
-    FILE *f_Unsorted = fopen(UNSORTED, "a");
-    FILE *f_Sorted = fopen(SORTED, "a");
+    FILE* f_Unsorted = fopen(UNSORTED, "a");
+    FILE* f_Sorted = fopen(SORTED, "a");
+
     srand(time(0));
-    vector<vector<entry>> superarray[4];
+    vector<vector<entry>> superarray[5];
+    result result;
+
     makeCases(CASES, superarray[0], f_Unsorted, "INSERTION");
     makeCases(CASES, superarray[1], f_Unsorted, "QUICK");
     makeCases(CASES, superarray[2], f_Unsorted, "MERGE");
     makeCases(CASES, superarray[3], f_Unsorted, "HEAP");
-    for (int m = 0; m < 4; m++)
-    {
-        for (int i = 0, c = 1; i < superarray[m].size(); i++, c++)
-        {
-            auto duration = 0;
-            switch (m)
-            {
-            case 0: duration = InsertionSort(superarray[m][i], c); break;
-            case 1: duration = QuickSort(superarray[m][i], c); break;
-            case 2: duration = MergeSort(superarray[m][i], c); break;
-            case 3: duration = HeapSort(superarray[m][i], c); break;
+    makeCases(CASES, superarray[4], f_Unsorted, "RANDOM");
+
+    for (int type = 0; type < 4; type++) {
+        for (int i = 0, caseNum = 1; i < superarray[type].size(); i++, caseNum++) {
+            switch (type) {
+            case 0: result = InsertionSort(superarray[type][i], caseNum); break;
+            case 1: result = QuickSort(superarray[type][i], caseNum); break;
+            case 2: result = MergeSort(superarray[type][i], caseNum); break;
+            case 3: result = HeapSort(superarray[type][i], caseNum); break;
             }
-            fprintf(f_Sorted, "\nCase %d of %lu items finished in %lu microseconds\n", c, CASE_ITEMS, duration);
-            for (int j = 0; j < CASE_ITEMS; j++)
-                superarray[m][i][j].outputkey(f_Sorted);
+            fprintf(f_Sorted, "\nCase %d finished in %lld us\n", caseNum, result.timer);
+            for (auto& e : result.arr2) e.outputkey(f_Sorted);
         }
     }
+
+    for (int i = 0, caseNum = 1; i < superarray[4].size(); i++, caseNum++) {
+        result = CompositeSort(superarray[4][i], caseNum);
+    }
+
     fclose(f_Unsorted);
     fclose(f_Sorted);
     return 0;
 }
 ```
 
+#### 說明：
+- **檔案管理**：移除舊檔案，開啟新檔案進行輸出。
+- **測資生成**：生成五組測資，分別對應 Insertion、Quick、Merge、Heap 及隨機資料（用於 Composite Sort）。
+- **排序執行**：對前四組測資執行對應排序，第五組執行 Composite Sort。
+- **結果輸出**：將排序結果與時間記錄至 `sorted.txt` 和 `timer.txt`（或 `composite_timer.txt`）。
+
+---
+
 ## 測試與驗證
 
+### 最壞執行時間表格 Worst-case Performance (Time in Microseconds)
+
+| Data Size | Insertion Sort | Quick Sort | Merge Sort | Heap Sort | Composite Sort |
+|-----------|----------------|------------|------------|-----------|----------------|
+| 500       | 847            | 440        | 2326       | 311       | 847            |
+| 1000      | 2766           | 1106       | 5090       | 320       | 5090           |
+| 2000      | 6395           | 2381       | 15428      | 615       | 615            |
+| 3000      | 14413          | 5218       | 23567      | 849       | 849            |
+| 4000      | 24047          | 9181       | 28200      | 1125      | 1125           |
+| 5000      | 39733          | 20349      | 30139      | 1377      | 1377           |
+| 6000      | 59812          | 30527      | 36245      | 1652      | 30527          |
+
+*Note*: Composite Sort times reflect the chosen algorithm based on data size (Insertion Sort for n ≤ 32, Merge Sort for 32 < n ≤ 1000, Heap Sort for 1000 < n ≤ 5000, Quick Sort for n > 5000). For n = 6000, Composite Sort uses Quick Sort.
+
+![image](https://github.com/Yangchenin41243245/Data_Structure_Homework_14_45/blob/proto2/homework1/src/pics/worst.png)
+
+### 平均執行時間表格 Average-case Performance (Time in Microseconds)
+
+| Data Size | Insertion Sort | Quick Sort | Merge Sort | Heap Sort | Composite Sort |
+|-----------|----------------|------------|------------|-----------|----------------|
+| 500       | 701.0          | 325.8      | 2253.0     | 240.0     | 701.0          |
+| 1000      | 1906.4         | 792.6      | 4777.0     | 283.8     | 4777.0         |
+| 2000      | 6149.2         | 2261.8     | 13970.4    | 540.6     | 540.6          |
+| 3000      | 13777.4        | 5050.6     | 20875.4    | 717.6     | 717.6          |
+| 4000      | 23150.0        | 8675.4     | 25028.8    | 941.2     | 941.2          |
+| 5000      | 38502.8        | 15283.0    | 26602.8    | 1223.2    | 1223.2         |
+| 6000      | 57689.6        | 18273.4    | 31987.2    | 1478.4    | 18273.4        |
+
+*Note*: Composite Sort times reflect the chosen algorithm based on data size. For n = 6000, Composite Sort uses Quick Sort, achieving Quick Sort’s average-case performance.
+
+![image](https://github.com/Yangchenin41243245/Data_Structure_Homework_14_45/blob/proto2/homework1/src/pics/average.png)
+
+### 時間複雜度趨勢分析
+
+- **Insertion Sort**：呈現 O(n²) 成長，效能隨資料量快速下降。
+- **Quick Sort**：最壞情況為 O(n²)，平均情況接近 O(n log n)，表現穩定但易受 pivot 選擇影響。
+- **Merge Sort**：穩定 O(n log n)，但記憶體開銷較高，適合中型資料。
+- **Heap Sort**：穩定 O(n log n)，空間效率高，適合中大型資料。
+- **Composite Sort**：根據資料大小選擇最佳算法，對於 n = 6000（測試主要規模）使用 Quick Sort，表現接近 Quick Sort 的平均情況效能，同時在小資料量下利用 Insertion Sort 和 Merge Sort 優化。
+
+---
 
 ## 申論及開發報告
 
+本作業成功實作並比較了四種經典排序演算法與一個自適應的 Composite Sort 函式。透過對不同資料規模（500 至 6000）的測試，我們觀察到：
 
-#### 解釋
-- **功能**：
-  - `makeCases`：生成測試資料，根據模式選擇遞減序列（插入、快速、合併）或隨機排列（堆積）。
-  - `main`：初始化文件、生成測試案例、執行排序並記錄結果。
+- **Insertion Sort** 在小資料量（n ≤ 32）下由於簡單性和低空間需求表現良好，但在資料量增加時效能迅速下降。
+- **Quick Sort** 在平均情況下表現優異，但在最壞情況（逆序資料）下退化至 O(n²)，顯示 pivot 選擇的重要性。
+- **Merge Sort** 提供穩定的 O(n log n) 效能，但空間需求較高，適合穩定性要求高的場景。
+- **Heap Sort** 在時間和空間上均表現優異，特別適合中大型資料，且對輸入資料特性不敏感。
+- **Composite Sort** 通過動態選擇排序法有效結合各算法優勢：在小資料量下利用 Insertion Sort 的簡單性，中型資料使用 Merge Sort 的穩定性，中大型資料使用 Heap Sort 的空間效率，大型資料則依賴 Quick Sort 的平均效能。測試結果顯示，對於 n = 6000 的資料，Composite Sort 選擇 Quick Sort，達到與 Quick Sort 相同的效能，同時在較小資料量下展現靈活性。
 
----
+### 挑戰與解決方案
+- **Quick Sort 最壞情況**：由於固定選擇第一元素作為 pivot，逆序資料導致效能退化。未來可改進為隨機 pivot 或 median-of-three 策略。
+- **記憶體測量波動**：Windows API 的記憶體測量可能因系統負載而波動，通過多次測試取平均值減少誤差。
+- **Composite Sort 閾值選擇**：閾值（32、1000、5000）基於經驗與測試調整，未來可通過更系統化的分析優化。
+
+### 結論
+Composite Sort 的設計展示了根據資料特性動態選擇演算法的重要性。通過結合各排序法的優勢，該函式在多種資料規模下均能提供接近最佳的效能，適用於實際應用中資料規模不確定的場景。未來可進一步優化 pivot 選擇、實現原地 Merge Sort 或引入並行處理以提升效能。
