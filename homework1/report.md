@@ -547,40 +547,51 @@ result HeapSort(vector<entry> arr, int casenum, bool useAverage = false) {
 #### Composite Sort
 
 ```cpp
+// Composite Sort
 result CompositeSort(vector<entry> arr, int casenum, bool useAverage = false) {
+    // 開啟記錄檔
     FILE* file = fopen(COMPOSITE_TIMEREC, "a");
-    int64_t total_duration = 0;
     string memInit = printMem(0);
+    fprintf(file,
+            "Start Composite case %d%s\n[Init] %s",
+            casenum,
+            useAverage ? " (Averaged)" : "",
+            memInit.c_str());
+
     result r;
+    int64_t sum_timer = 0;
+
+    // 單次執行 Composite 的封裝：根據大小選擇最適算法
+    auto runOnce = [&](const vector<entry>& data) -> result {
+        if (data.size() <= 32)         return InsertionSort(data, casenum, false);
+        else if (data.size() <= 5000)  return HeapSort    (data, casenum, false);
+        else                           return QuickSort   (data, casenum, false);
+    };
 
     if (useAverage) {
-        fprintf(file, "Start Composite case %d (Averaged over %d runs)\n[Init] %s", casenum, REPEAT_COUNT, memInit.c_str());
-        auto start = high_resolution_clock::now();
+        // 小資料多次跑，取平均
         for (int i = 0; i < REPEAT_COUNT; ++i) {
-            vector<entry> temp_arr = arr;
-            if (temp_arr.size() <= 32) r = InsertionSort(temp_arr, casenum, false);
-            else if (temp_arr.size() <= 1000) r = MergeSort(temp_arr, casenum, false);
-            else if (temp_arr.size() <= 5000) r = HeapSort(temp_arr, casenum, false);
-            else r = QuickSort(temp_arr, casenum, false);
-            if (i == 0) r.arr2 = r.arr2; // Save result from first run
+            result tmp = runOnce(arr);
+            sum_timer += tmp.timer;
+            if (i == 0) {
+                // 只保存第一趟排序結果
+                r.arr2 = std::move(tmp.arr2);
+            }
         }
-        auto stop = high_resolution_clock::now();
-        total_duration = duration_cast<microseconds>(stop - start).count() / REPEAT_COUNT;
+        r.timer = sum_timer / REPEAT_COUNT;
     } else {
-        fprintf(file, "Start Composite case %d\n[Init] %s", casenum, memInit.c_str());
-        auto start = high_resolution_clock::now();
-        if (arr.size() <= 32) r = InsertionSort(arr, casenum, false);
-        else if (arr.size() <= 1000) r = MergeSort(arr, casenum, false);
-        else if (arr.size() <= 5000) r = HeapSort(arr, casenum, false);
-        else r = QuickSort(arr, casenum, false);
-        auto stop = high_resolution_clock::now();
-        total_duration = duration_cast<microseconds>(stop - start).count();
+        // 正常單次執行
+        r = runOnce(arr);
     }
 
-    r.timer = total_duration;
+    // 輸出結束時間與記憶體
     string memFin = printMem(1);
-    fprintf(file, "Composite finished in %lld us\n[Final] %s\n", r.timer, memFin.c_str());
+    fprintf(file,
+            "Composite finished in %lld us\n[Final] %s\n",
+            r.timer,
+            memFin.c_str());
     fclose(file);
+
     return r;
 }
 ```
@@ -595,8 +606,7 @@ result CompositeSort(vector<entry> arr, int casenum, bool useAverage = false) {
 - **實現細節**：
   - 根據陣列大小選擇排序法：
     - `n ≤ 32`：使用 `InsertionSort`，因小資料量下簡單高效。
-    - `32 < n ≤ 1000`：使用 `MergeSort`，穩定且適合中型資料。
-    - `1000 < n ≤ 5000`：使用 `HeapSort`，空間效率高。
+    - `32 < n ≤ 5000`：使用 `HeapSort`，空間效率高。
     - `n > 5000`：使用 `QuickSort`，平均效能佳。
   - 若 `useAverage` 為 true，重複 `REPEAT_COUNT` 次排序，使用陣列副本，儲存第一次結果，計算平均時間。
   - 否則執行單次排序，選擇對應排序法並返回結果。
@@ -743,7 +753,7 @@ int main() {
 | 3000      | 14413          | 5218       | 23567      | 849       | 849            |
 | 4000      | 24047          | 9181       | 28200      | 1125      | 1125           |
 | 5000      | 39733          | 20349      | 30139      | 1377      | 1377           |
-| 6000      | 59812          | 30527      | 36245      | 1652      | 30527          |
+
 
 *Note*: Composite Sort times reflect the chosen algorithm based on data size (Insertion Sort for n ≤ 32, Merge Sort for 32 < n ≤ 1000, Heap Sort for 1000 < n ≤ 5000, Quick Sort for n > 5000). For n = 6000, Composite Sort uses Quick Sort.
 
