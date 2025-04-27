@@ -170,19 +170,22 @@ using namespace chrono;
 
 #### 說明：
 
-##### 引入標頭檔
-- `iostream`, `vector`, `algorithm`, `string`：處理輸出、容器、演算法與字串。
-- `ctime`, `cstdlib`：處理隨機數與時間。
-- `chrono`：計時用，計算排序時間。
-- `windows.h`, `psapi.h`：Windows API，用來查詢記憶體使用情況。
-
-##### `#pragma comment(lib, "psapi.lib")`
-自動連結 `psapi.lib`，提供記憶體管理函式。
-
-##### #define 指引
-- `CASE_ITEMS`：每筆測試資料的元素數量（6000）。
-- `CASES`：測試用例數（5）。
-- `UNSORTED`, `SORTED`, `TIMEREC`, `COMPOSITE_TIMEREC`：檔案路徑，分別儲存未排序資料、排序後資料、排序時間記錄及 Composite Sort 時間記錄。
+- **功能**：定義程式所需的標頭檔、命名空間及常數，為後續排序實作和效能測試提供基礎環境設置。
+- **標頭檔**：
+  - `iostream`：提供輸入輸出功能，用於檔案操作與結果顯示。
+  - `vector`：用於動態陣列，儲存測試資料與排序結果。
+  - `algorithm`：提供 `swap` 等工具函式，輔助排序實現。
+  - `ctime`, `cstdlib`：支援隨機數生成（`rand`）與時間種子（`time`），用於測試資料生成。
+  - `chrono`：提供高精度計時工具（`high_resolution_clock`），用於測量排序執行時間。
+  - `windows.h`, `psapi.h`：Windows API，用於記憶體使用量測量。
+- **#pragma comment**：自動連結 `psapi.lib`，提供記憶體資訊查詢功能。
+- **常數定義**：
+  - `CASE_ITEMS`：每個測試用例的元素數（6000）。
+  - `CASES`：測試用例數（5）。
+  - `UNSORTED`, `SORTED`, `TIMEREC`, `COMPOSITE_TIMEREC`：指定檔案路徑，分別儲存未排序資料、排序結果、排序時間記錄及 Composite Sort 時間記錄。
+  - `REPEAT_COUNT`：小資料量測試時的重複次數（1000），用於平均時間計算以減少誤差。
+  - `SMALL_DATA_THRESHOLD`：小資料量閾值（1000），決定是否啟用平均計時策略。
+- **程式特性**：設置統一的檔案路徑與測試參數，確保程式可重複執行並生成一致的測試資料與結果。
 
 ---
 
@@ -217,20 +220,24 @@ string printMem(int state) {
 
 #### 說明：
 
-##### 資料結構
-- `node`：簡單結構，包含一個整數 `data`。
-- `entry`：包含 `key`（排序依據）和指向 `node` 的指標，提供 `outputkey` 函式輸出鍵值。
-- `result`：儲存排序結果（`arr2`）和執行時間（`timer`）。
-
-##### `printMem`
-- 使用 `GetProcessMemoryInfo` 獲取記憶體使用量。
-- `state == 0` 返回當前記憶體使用量，`state == 1` 返回峰值記憶體使用量，單位為 KB。
+- **功能**：定義資料結構（`node`, `entry`, `result`）與記憶體分析函式（`printMem`），用於儲存測試資料、排序結果及測量記憶體使用量。
+- **資料結構**：
+  - `node`：簡單結構，包含單一整數 `data`，作為 `entry` 的附加資料。
+  - `entry`：核心資料結構，包含排序鍵值 `key`（long 型別）及指向 `node` 的指標 `data`。提供 `outputkey` 方法將鍵值輸出至指定檔案。
+  - `result`：儲存排序結果，包含執行時間 `timer`（微秒，int64_t 型別）及排序後的陣列 `arr2`（`vector<entry>` 型別）。
+- **printMem 函式**：
+  - **功能**：使用 Windows API 的 `GetProcessMemoryInfo` 獲取程式記憶體使用資訊。
+  - **參數**：`state`（int），`state == 0` 返回當前記憶體使用量，`state == 1` 返回峰值記憶體使用量。
+  - **返回值**：字串，包含記憶體使用量（單位：KB）。
+  - **實現細節**：透過 `PROCESS_MEMORY_COUNTERS` 結構獲取記憶體數據，轉換為 KB 並格式化為字串。
+- **程式特性**：結構化資料設計便於排序與輸出，記憶體分析函式提供即時與峰值記憶體使用量，支援效能比較。`entry` 的指標設計允許擴展，但本程式僅使用簡單整數資料。
 
 ---
 
 ### 三. 排序函式實作
 
 #### Insertion Sort
+
 ```cpp
 result InsertionSort(vector<entry> arr, int casenum, bool useAverage = false) {
     result r;
@@ -281,13 +288,29 @@ result InsertionSort(vector<entry> arr, int casenum, bool useAverage = false) {
 }
 ```
 
-- 對每一個元素，往前比較並插入至適當位置。
-- 穩定排序，適合幾乎排序好的資料。
-- **時間複雜度**：平均與最壞為 O(n²)，最佳為 O(n)。
+#### 說明：
+
+- **功能**：實現插入排序（Insertion Sort），將輸入陣列按鍵值（`key`）遞增排序，並記錄執行時間與記憶體使用量。
+- **參數**：
+  - `arr`：待排序的 `vector<entry>` 陣列，包含鍵值與資料指標。
+  - `casenum`：測試用例編號，用於記錄輸出。
+  - `useAverage`：布林值，決定是否對小資料量（n ≤ 1000）進行多次執行取平均時間（預設為 false）。
+- **實現細節**：
+  - 若 `useAverage` 為 true，則重複執行 `REPEAT_COUNT`（1000）次排序，每次使用陣列副本（`temp_arr`）避免修改原始資料，僅儲存第一次排序結果（`r.arr2`），並計算平均執行時間。
+  - 若 `useAverage` 為 false，執行單次排序，直接操作輸入陣列。
+  - 排序邏輯：從第二個元素開始，逐一與前面的已排序部分比較，若鍵值小於前一元素則後移，直至找到正確插入位置。
+  - 使用 `std::chrono::high_resolution_clock` 記錄排序時間，單位為微秒。
+  - 透過 `printMem` 記錄初始與峰值記憶體使用量，寫入 `timer.txt`。
+- **程式特性**：
+  - 穩定排序，適合小資料量（n ≤ 32）或近乎排序的資料。
+  - 時間複雜度：最佳 O(n)（已排序），平均/最壞 O(n²)（隨機/逆序）。
+  - 空間複雜度：O(1)（原地排序，僅需常數額外空間）。
+  - 未優化比較或移動，適用於簡單場景。
 
 ---
 
 #### Quick Sort
+
 ```cpp
 void QuickSortCore(vector<entry>& arr, int left, int right) {
     if (left < right) {
@@ -337,13 +360,32 @@ result QuickSort(vector<entry> arr, int casenum, bool useAverage = false) {
 }
 ```
 
-- 以最後一個元素作為 pivot。
-- 小於 pivot 的元素會被移到左側，遞迴排序。
-- 不穩定排序，**在最壞情況（遞增/遞減序列）會退化為 O(n²)**，但一般實務中表現極佳。
+#### 說明：
+
+- **功能**：實現快速排序（Quick Sort），透過分治法按鍵值遞增排序，並記錄執行時間與記憶體使用量。
+- **參數**：
+  - `arr`：待排序的 `vector<entry>` 陣列。
+  - `casenum`：測試用例編號。
+  - `useAverage`：布林值，控制小資料量是否多次執行取平均時間。
+- **實現細節**：
+  - 分為核心函式 `QuickSortCore` 和包裝函式 `QuickSort`。
+  - `QuickSortCore`：
+    - 選擇第一元素（`arr[left]`）作為 pivot。
+    - 使用雙指針（`i`, `j`）從左右兩端向中間掃描，交換小於/大於 pivot 的元素。
+    - 最終將 pivot 置於正確位置，遞迴排序左右子陣列。
+  - `QuickSort`：
+    - 若 `useAverage` 為 true，重複 `REPEAT_COUNT` 次排序，使用陣列副本，儲存第一次結果，計算平均時間。
+    - 否則執行單次排序，直接操作輸入陣列。
+    - 使用 `std::chrono` 計時，記錄初始與峰值記憶體，寫入 `timer.txt`。
+- **程式特性**：
+  - 非穩定排序，平均效能優異（O(n log n)），但最壞情況（逆序）退化至 O(n²）。
+  - 空間複雜度：O(log n)（遞迴棧，平均），最壞 O(n）。
+  - 固定 pivot 選擇易導致效能退化，未採用隨機 pivot 或 median-of-three 優化。
 
 ---
 
 #### Merge Sort
+
 ```cpp
 vector<entry> MergeCore(vector<entry> a, vector<entry> b) {
     vector<entry> c;
@@ -398,13 +440,30 @@ result MergeSort(vector<entry> arr, int casenum, bool useAverage = false) {
 }
 ```
 
-- 將陣列遞迴切半後合併，合併時保持排序。
-- **空間複雜度 O(n)**，需要額外暫存空間。
-- 穩定排序，適合資料量大且對穩定性有要求的應用。
+#### 說明：
+
+- **功能**：實現合併排序（Merge Sort），透過遞迴分割與合併按鍵值遞增排序，記錄時間與記憶體使用量。
+- **參數**：
+  - `arr`：待排序的 `vector<entry>` 陣列。
+  - `casenum`：測試用例編號。
+  - `useAverage`：布林值，控制小資料量是否多次執行取平均。
+- **實現細節**：
+  - 分為兩個核心函式：
+    - `MergeCut`：遞迴將陣列分割為左右子陣列（中點 `mid`），直至子陣列大小 ≤ 1，然後調用 `MergeCore` 合併。
+    - `MergeCore`：合併兩個已排序陣列（`a`, `b`），比較鍵值並按序存入結果陣列 `c`。
+  - `MergeSort`：
+    - 若 `useAverage` 為 true，重複 `REPEAT_COUNT` 次排序，使用陣列副本，儲存第一次結果，計算平均時間。
+    - 否則執行單次排序，返回排序後陣列。
+    - 使用 `std::chrono` 計時，記錄記憶體使用量，寫入 `timer.txt`。
+- **程式特性**：
+  - 穩定排序，時間複雜度穩定為 O(n log n)，不受輸入影響。
+  - 空間複雜度：O(n)，需額外陣列儲存合併結果。
+  - 遞迴實現，記憶體開銷較高，適合中型資料（32 < n ≤ 1000）。
 
 ---
 
 #### Heap Sort
+
 ```cpp
 void heapify(vector<entry>& arr, int n, int i) {
     int largest = i, l = 2 * i + 1, r = 2 * i + 2;
@@ -438,9 +497,7 @@ result HeapSort(vector<entry> arr, int casenum, bool useAverage = false) {
         auto stop = high_resolution_clock::now();
         total_duration = duration_cast<microseconds>(stop - start).count() / REPEAT_COUNT;
     } else {
-        fprintf(file, "Start Heap case %d\n[
-
-Init] %s", casenum, memInit.c_str());
+        fprintf(file, "Start Heap case %d\n[Init] %s", casenum, memInit.c_str());
         auto start = high_resolution_clock::now();
         int n = arr.size();
         for (int i = n / 2 - 1; i >= 0; i--) heapify(arr, n, i);
@@ -461,13 +518,29 @@ Init] %s", casenum, memInit.c_str());
 }
 ```
 
-- 先建 max heap，再依序將最大值交換到尾端並縮小 heap 區間。
-- 不需要額外空間，**空間複雜度 O(1)**。
-- 時間複雜度穩定為 O(n log n)，但常數大、快取不友善，實務上不如 QuickSort 快。
+#### 說明：
+
+- **功能**：實現堆排序（Heap Sort），基於最大堆結構按鍵值遞增排序，記錄時間與記憶體使用量。
+- **參數**：
+  - `arr`：待排序的 `vector<entry>` 陣列。
+  - `casenum`：測試用例編號。
+  - `useAverage`：布林值，控制小資料量是否多次執行取平均。
+- **實現細節**：
+  - 分為兩個部分：
+    - `heapify`：維護最大堆性質，比較父節點與左右子節點，確保父節點鍵值最大。
+    - `HeapSort`：首先從最後一個非葉節點開始建堆（`n/2 - 1`），然後反覆將堆頂（最大值）交換至陣列尾端，縮小堆範圍並重新調整堆。
+  - 若 `useAverage` 為 true，重複 `REPEAT_COUNT` 次排序，使用陣列副本，儲存第一次結果，計算平均時間。
+  - 否則執行單次排序，直接操作輸入陣列。
+  - 使用 `std::chrono` 計時，記錄記憶體使用量，寫入 `timer.txt`。
+- **程式特性**：
+  - 非穩定排序，時間複雜度穩定為 O(n log n)，對輸入資料不敏感。
+  - 空間複雜度：O(1)，原地排序，僅需常數額外空間。
+  - 適合中大型資料（1000 < n ≤ 5000），但快取效率低於 Quick Sort。
 
 ---
 
 #### Composite Sort
+
 ```cpp
 result CompositeSort(vector<entry> arr, int casenum, bool useAverage = false) {
     FILE* file = fopen(COMPOSITE_TIMEREC, "a");
@@ -501,28 +574,38 @@ result CompositeSort(vector<entry> arr, int casenum, bool useAverage = false) {
 
     r.timer = total_duration;
     string memFin = printMem(1);
-    fprintf(file, "Composite finished in %lld us\n[Final] %s\n", total_duration, memFin.c_str());
+    fprintf(file, "Composite finished in %lld us\n[Final] %s\n", r.timer, memFin.c_str());
     fclose(file);
     return r;
 }
 ```
 
 #### 說明：
-- **功能**：`CompositeSort` 根據輸入陣列大小動態選擇最適排序演算法：`n ≤ 32` 使用 `InsertionSort`（小資料高效），`32 < n ≤ 1000` 使用 `MergeSort`（穩定且適合中型資料），`1000 < n ≤ 5000` 使用 `HeapSort`（空間效率高），`n > 5000` 使用 `QuickSort`（大型資料平均效能佳）。
-記錄初始記憶體與開始時間，根據陣列大小調用對應排序函式，記錄結束時間與峰值記憶體，結果輸出至 `composite_timer.txt`。
-  
-- **Insertion Sort**：簡單實現，適合小資料，記錄初始與結束記憶體使用量。
-- **Quick Sort**：使用第一元素作為 pivot，未採用 median-of-three，導致最壞情況效能較差。
-- **Merge Sort**：遞迴實現，非迭代式，空間需求較高。
-- **Heap Sort**：標準最大堆實現，空間效率高。
-- **Composite Sort**：根據資料大小選擇最適排序法，記錄獨立時間與記憶體使用量，輸出至 `composite_timer.txt`。
+
+- **功能**：實現複合排序（Composite Sort），根據輸入陣列大小動態選擇最適排序演算法，記錄時間與記憶體使用量。
+- **參數**：
+  - `arr`：待排序的 `vector<entry>` 陣列。
+  - `casenum`：測試用例編號。
+  - `useAverage`：布林值，控制小資料量是否多次執行取平均。
+- **實現細節**：
+  - 根據陣列大小選擇排序法：
+    - `n ≤ 32`：使用 `InsertionSort`，因小資料量下簡單高效。
+    - `32 < n ≤ 1000`：使用 `MergeSort`，穩定且適合中型資料。
+    - `1000 < n ≤ 5000`：使用 `HeapSort`，空間效率高。
+    - `n > 5000`：使用 `QuickSort`，平均效能佳。
+  - 若 `useAverage` 為 true，重複 `REPEAT_COUNT` 次排序，使用陣列副本，儲存第一次結果，計算平均時間。
+  - 否則執行單次排序，選擇對應排序法並返回結果。
+  - 使用 `std::chrono` 計時，記錄記憶體使用量，寫入 `composite_timer.txt`。
+- **程式特性**：
+  - 結合各排序法優勢，適應不同資料規模。
+  - 時間複雜度：隨選擇的排序法變化（O(n²) 至 O(n log n)）。
+  - 空間複雜度：隨排序法變化（O(1) 至 O(n)）。
+  - 閾值（32、1000、5000）基於經驗設定，未來可進一步優化。
 
 ---
 
-
 ### 四. 生成測試用例
 
-#### makeCases 函式
 ```cpp
 void makeCases(int cases, vector<vector<entry>>& superarray, FILE* unsortedfile, string mode) {
     for (int c = 0; c < cases; c++) {
@@ -551,15 +634,25 @@ void makeCases(int cases, vector<vector<entry>>& superarray, FILE* unsortedfile,
 ```
 
 #### 說明：
-- **功能**：`makeCases` 函式負責生成指定數量的測試用例（`cases`），每個用例包含 `CASE_ITEMS`（6000）個 `entry` 物件，並將未排序的鍵值輸出至 `unsortedfile`（`tosort.txt`）。生成的測試用例儲存於 `superarray` 中，供後續排序使用。
+
+- **功能**：生成指定數量的測試用例，每個用例包含 `CASE_ITEMS`（6000）個 `entry` 物件，根據模式生成鍵值並輸出至未排序檔案，儲存於 `superarray`。
 - **參數**：
-  - `cases`：測試用例數量（預設為 5）。
-  - `superarray`：儲存生成的測試用例陣列，型別為 `vector<vector<entry>>`。
-  - `unsortedfile`：指向未排序資料輸出檔案的指標。
-  - `mode`：指定鍵值生成模式，支援以下選項：
-    - `"INSERTION"`, `"QUICK"`, `"MERGE"`：生成逆序鍵值（`CASE_ITEMS - i`），模擬最壞情況。
-    - `"RANDOM"`：生成隨機鍵值（`rand() % CASE_ITEMS`），模擬平均情況，用於 `CompositeSort`。
-    - 其他（預設為 `"HEAP"`）：生成順序鍵值（`i`），後續針對 Heap Sort 進行隨機排列。
+  - `cases`：生成用例數（預設 5）。
+  - `superarray`：儲存測試用例的 `vector<vector<entry>>`。
+  - `unsortedfile`：未排序資料輸出檔案（`tosort.txt`）。
+  - `mode`：鍵值生成模式（`"INSERTION"`, `"QUICK"`, `"MERGE"`, `"RANDOM"`, `"HEAP"`）。
+- **實現細節**：
+  - 根據 `mode` 生成鍵值：
+    - `"INSERTION"`, `"QUICK"`, `"MERGE"`：逆序鍵值（`CASE_ITEMS - i`），模擬最壞情況。
+    - `"RANDOM"`：隨機鍵值（`rand() % CASE_ITEMS`），模擬平均情況。
+    - `"HEAP"`：順序鍵值（`i`），後隨機打亂部分元素（從索引 2 開始）。
+  - 每個 `entry` 包含鍵值與動態分配的 `node` 指標。
+  - 使用 `outputkey` 將鍵值寫入 `unsortedfile`。
+  - 將生成的陣列存入 `superarray`。
+- **程式特性**：
+  - 支援多種測試場景（最壞、平均、特定情況）。
+  - 動態分配 `node`，需注意記憶體管理（本程式未顯式釋放）。
+  - 隨機打亂邏輯僅針對 Heap Sort 優化，模擬部分亂序資料。
 
 ---
 
@@ -612,10 +705,24 @@ int main() {
 ```
 
 #### 說明：
-- **檔案管理**：移除舊檔案，開啟新檔案進行輸出。
-- **測資生成**：生成五組測資，分別對應 Insertion、Quick、Merge、Heap 及隨機資料（用於 Composite Sort）。
-- **排序執行**：對前四組測資執行對應排序，第五組執行 Composite Sort。
-- **結果輸出**：將排序結果與時間記錄至 `sorted.txt` 和 `timer.txt`（或 `composite_timer.txt`）。
+
+- **功能**：主程式負責初始化環境、生成測試資料、執行排序演算法並輸出結果，統籌整個效能測試流程。
+- **實現細節**：
+  - **檔案管理**：移除舊檔案（`sorted.txt`, `tosort.txt`, `timer.txt`, `composite_timer.txt`），開啟新檔案進行輸出。
+  - **隨機種子**：使用 `srand(time(0))` 初始化隨機數生成器，確保隨機資料可重現。
+  - **測資生成**：調用 `makeCases` 生成五組測資，分別對應 Insertion Sort（逆序）、Quick Sort（逆序）、Merge Sort（逆序）、Heap Sort（部分亂序）及 Composite Sort（隨機）。
+  - **排序執行**：
+    - 對前四組測資（`type = 0~3`）執行對應排序演算法，根據資料大小（≤ 1000）決定是否啟用平均計時（`useAverage`）。
+    - 對第五組測資（隨機）執行 Composite Sort。
+  - **結果輸出**：
+    - 排序結果（鍵值）與執行時間寫入 `sorted.txt`。
+    - 時間與記憶體記錄分別寫入 `timer.txt`（單一排序法）與 `composite_timer.txt`（Composite Sort）。
+  - 關閉檔案並結束程式。
+- **程式特性**：
+  - 模組化設計，清晰分離測資生成、排序執行與結果輸出。
+  - 支援多種排序法與測試場景，方便擴展。
+  - 小資料量（n ≤ 1000）使用平均計時，確保測量穩定。
+  - 未處理動態分配的 `node` 記憶體釋放，可能導致記憶體洩漏。
 
 ---
 
