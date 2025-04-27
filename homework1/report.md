@@ -81,7 +81,7 @@ auto duration = chrono::duration_cast<chrono::microseconds>(stop - start).count(
 bool useAverage = (array_size <= SMALL_DATA_THRESHOLD); // SMALL_DATA_THRESHOLD = 1000
 ```
 
-由於本程式所有測試用例的資料量均為 5000，實際執行中均採用單次計時模式。然而，程式已完整支援小資料量的多次計時功能，可在資料量 ≤ 1000 時自動啟用。
+
 ---
 
 ## 效能分析
