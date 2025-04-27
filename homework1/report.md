@@ -422,6 +422,9 @@ result CompositeSort(vector<entry> arr, int casenum) {
 ```
 
 #### 說明：
+- **功能**：`CompositeSort` 根據輸入陣列大小動態選擇最適排序演算法：`n ≤ 32` 使用 `InsertionSort`（小資料高效），`32 < n ≤ 1000` 使用 `MergeSort`（穩定且適合中型資料），`1000 < n ≤ 5000` 使用 `HeapSort`（空間效率高），`n > 5000` 使用 `QuickSort`（大型資料平均效能佳）。
+記錄初始記憶體與開始時間，根據陣列大小調用對應排序函式，記錄結束時間與峰值記憶體，結果輸出至 `composite_timer.txt`。
+  
 - **Insertion Sort**：簡單實現，適合小資料，記錄初始與結束記憶體使用量。
 - **Quick Sort**：使用第一元素作為 pivot，未採用 median-of-three，導致最壞情況效能較差。
 - **Merge Sort**：遞迴實現，非迭代式，空間需求較高。
@@ -430,7 +433,51 @@ result CompositeSort(vector<entry> arr, int casenum) {
 
 ---
 
-### 四. 主程式與測試流程
+
+### 四. 生成測試用例
+
+#### makeCases 函式
+```cpp
+void makeCases(int cases, vector<vector<entry>>& superarray, FILE* unsortedfile, string mode) {
+    for (int c = 0; c < cases; c++) {
+        vector<entry> array;
+        for (int i = 0; i < CASE_ITEMS; i++) {
+            node* n = new node;
+            long key;
+            if (mode == "INSERTION" || mode == "QUICK" || mode == "MERGE")
+                key = CASE_ITEMS - i;
+            else if (mode == "RANDOM")
+                key = rand() % CASE_ITEMS;
+            else
+                key = i;
+            array.emplace_back(key, n);
+        }
+        if (mode == "HEAP") {
+            for (int i = CASE_ITEMS - 1; i >= 2; i--) {
+                int j = rand() % i + 1;
+                swap(array[i], array[j]);
+            }
+        }
+        for (auto& e : array) e.outputkey(unsortedfile);
+        superarray.push_back(array);
+    }
+}
+```
+
+#### 說明：
+- **功能**：`makeCases` 函式負責生成指定數量的測試用例（`cases`），每個用例包含 `CASE_ITEMS`（6000）個 `entry` 物件，並將未排序的鍵值輸出至 `unsortedfile`（`tosort.txt`）。生成的測試用例儲存於 `superarray` 中，供後續排序使用。
+- **參數**：
+  - `cases`：測試用例數量（預設為 5）。
+  - `superarray`：儲存生成的測試用例陣列，型別為 `vector<vector<entry>>`。
+  - `unsortedfile`：指向未排序資料輸出檔案的指標。
+  - `mode`：指定鍵值生成模式，支援以下選項：
+    - `"INSERTION"`, `"QUICK"`, `"MERGE"`：生成逆序鍵值（`CASE_ITEMS - i`），模擬最壞情況。
+    - `"RANDOM"`：生成隨機鍵值（`rand() % CASE_ITEMS`），模擬平均情況，用於 `CompositeSort`。
+    - 其他（預設為 `"HEAP"`）：生成順序鍵值（`i`），後續針對 Heap Sort 進行隨機排列。
+
+---
+
+### 五. 主程式與測試流程
 
 ```cpp
 int main() {
@@ -523,7 +570,6 @@ int main() {
 - **Quick Sort**：最壞情況為 O(n²)，平均情況接近 O(n log n)，表現穩定但易受 pivot 選擇影響。
 - **Merge Sort**：穩定 O(n log n)，但記憶體開銷較高，適合中型資料。
 - **Heap Sort**：穩定 O(n log n)，空間效率高，適合中大型資料。
-- **Composite Sort**：根據資料大小選擇最佳算法，對於 n = 6000（測試主要規模）使用 Quick Sort，表現接近 Quick Sort 的平均情況效能，同時在小資料量下利用 Insertion Sort 和 Merge Sort 優化。
 
 ---
 
