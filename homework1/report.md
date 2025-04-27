@@ -220,23 +220,6 @@ string printMem(int state) {
 - `entry`：包含 `key`（排序依據）和指向 `node` 的指標，提供 `outputkey` 函式輸出鍵值。
 - `result`：儲存排序結果（`arr2`）和執行時間（`timer`）。
 
-##### `memoryUsage()` — 取得目前記憶體使用量
-
-- 使用 Windows API：
-  - `GetProcessMemoryInfo()`：取得目前執行程序的記憶體資訊。
-  - `pmc.WorkingSetSize`：代表目前正在使用的實體記憶體（Working Set），以「位元組 (bytes)」為單位。
-- 回傳型別是 `SIZE_T`，通常對應 `size_t`，足以儲存記憶體大小。
-
-這個函式的用途是在排序前後量測記憶體用量。
-
-#####  `recordTime()` — 執行排序並記錄所花時間
-
-- 接收一個 `function<void()>` 作為參數，也就是接受任何無參數、無回傳值的函式（或 lambda）。
-- 使用 `chrono::high_resolution_clock` 精準地記錄時間。
-- 回傳值是毫秒（`duration<double, milli>`）。
-
-讓每種排序方法都可以包裝成 lambda 傳入這個函式中，方便統一計時。
-
 ##### `printMem`
 - 使用 `GetProcessMemoryInfo` 獲取記憶體使用量。
 - `state == 0` 返回當前記憶體使用量，`state == 1` 返回峰值記憶體使用量，單位為 KB。
