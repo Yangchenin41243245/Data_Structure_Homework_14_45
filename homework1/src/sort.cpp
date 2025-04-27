@@ -13,12 +13,14 @@ using namespace std;
 using namespace chrono;
 
 // 設定常數
-#define CASE_ITEMS 6000
+#define CASE_ITEMS 3000
 #define CASES 5
-#define UNSORTED "./tosort.txt"
-#define SORTED "./sorted.txt"
-#define TIMEREC "./timer.txt"
-#define COMPOSITE_TIMEREC "./composite_timer.txt"
+#define UNSORTED "D:/work/sort/tosort.txt"
+#define SORTED "D:/work/sort/sorted.txt"
+#define TIMEREC "D:/work/sort/timer.txt"
+#define COMPOSITE_TIMEREC "D:/work/sort/composite_timer.txt"
+#define REPEAT_COUNT 100 // For small dataset averaging
+#define SMALL_DATA_THRESHOLD 100 // Threshold for small datasets
 
 // 結構與類別
 struct node { int data; };
@@ -48,27 +50,48 @@ string printMem(int state) {
 }
 
 // 插入排序
-result InsertionSort(vector<entry> arr, int casenum) {
+result InsertionSort(vector<entry> arr, int casenum, bool useAverage = false) {
     result r;
     FILE* file = fopen(TIMEREC, "a");
-    auto timer = high_resolution_clock::now();
+    int64_t total_duration = 0;
     string memInit = printMem(0);
-    fprintf(file, "Start Insertion case %d\n[Init] %s", casenum, memInit.c_str());
 
-    for (int i = 1; i < arr.size(); i++) {
-        entry temp = arr[i];
-        int j = i - 1;
-        while (j >= 0 && arr[j].key > temp.key) {
-            arr[j + 1] = arr[j];
-            j--;
+    if (useAverage) {
+        fprintf(file, "Start Insertion case %d (Averaged over %d runs)\n[Init] %s", casenum, REPEAT_COUNT, memInit.c_str());
+        auto start = high_resolution_clock::now();
+        for (int i = 0; i < REPEAT_COUNT; ++i) {
+            vector<entry> temp_arr = arr; // Copy to avoid modifying original
+            for (int j = 1; j < temp_arr.size(); j++) {
+                entry temp = temp_arr[j];
+                int k = j - 1;
+                while (k >= 0 && temp_arr[k].key > temp.key) {
+                    temp_arr[k + 1] = temp_arr[k];
+                    k--;
+                }
+                temp_arr[k + 1] = temp;
+            }
+            if (i == 0) r.arr2 = temp_arr; // Save result from first run
         }
-        arr[j + 1] = temp;
+        auto stop = high_resolution_clock::now();
+        total_duration = duration_cast<microseconds>(stop - start).count() / REPEAT_COUNT;
+    } else {
+        fprintf(file, "Start Insertion case %d\n[Init] %s", casenum, memInit.c_str());
+        auto start = high_resolution_clock::now();
+        for (int i = 1; i < arr.size(); i++) {
+            entry temp = arr[i];
+            int j = i - 1;
+            while (j >= 0 && arr[j].key > temp.key) {
+                arr[j + 1] = arr[j];
+                j--;
+            }
+            arr[j + 1] = temp;
+        }
+        auto stop = high_resolution_clock::now();
+        total_duration = duration_cast<microseconds>(stop - start).count();
+        r.arr2 = arr;
     }
 
-    auto stop = high_resolution_clock::now();
-    auto dur = duration_cast<microseconds>(stop - timer);
-    r.arr2 = arr;
-    r.timer = dur.count();
+    r.timer = total_duration;
     string memFin = printMem(1);
     fprintf(file, "Finished in %lld us\n[Final] %s\n", r.timer, memFin.c_str());
     fclose(file);
@@ -91,19 +114,32 @@ void QuickSortCore(vector<entry>& arr, int left, int right) {
     }
 }
 
-result QuickSort(vector<entry> arr, int casenum) {
+result QuickSort(vector<entry> arr, int casenum, bool useAverage = false) {
     result r;
     FILE* file = fopen(TIMEREC, "a");
-    auto timer = high_resolution_clock::now();
+    int64_t total_duration = 0;
     string memInit = printMem(0);
-    fprintf(file, "Start Quick case %d\n[Init] %s", casenum, memInit.c_str());
 
-    QuickSortCore(arr, 0, arr.size() - 1);
+    if (useAverage) {
+        fprintf(file, "Start Quick case %d (Averaged over %d runs)\n[Init] %s", casenum, REPEAT_COUNT, memInit.c_str());
+        auto start = high_resolution_clock::now();
+        for (int i = 0; i < REPEAT_COUNT; ++i) {
+            vector<entry> temp_arr = arr;
+            QuickSortCore(temp_arr, 0, temp_arr.size() - 1);
+            if (i == 0) r.arr2 = temp_arr;
+        }
+        auto stop = high_resolution_clock::now();
+        total_duration = duration_cast<microseconds>(stop - start).count() / REPEAT_COUNT;
+    } else {
+        fprintf(file, "Start Quick case %d\n[Init] %s", casenum, memInit.c_str());
+        auto start = high_resolution_clock::now();
+        QuickSortCore(arr, 0, arr.size() - 1);
+        auto stop = high_resolution_clock::now();
+        total_duration = duration_cast<microseconds>(stop - start).count();
+        r.arr2 = arr;
+    }
 
-    auto stop = high_resolution_clock::now();
-    auto dur = duration_cast<microseconds>(stop - timer);
-    r.arr2 = arr;
-    r.timer = dur.count();
+    r.timer = total_duration;
     string memFin = printMem(1);
     fprintf(file, "Finished in %lld us\n[Final] %s\n", r.timer, memFin.c_str());
     fclose(file);
@@ -131,19 +167,32 @@ vector<entry> MergeCut(vector<entry> arr) {
     return MergeCore(MergeCut(left), MergeCut(right));
 }
 
-result MergeSort(vector<entry> arr, int casenum) {
+result MergeSort(vector<entry> arr, int casenum, bool useAverage = false) {
     result r;
     FILE* file = fopen(TIMEREC, "a");
-    auto timer = high_resolution_clock::now();
+    int64_t total_duration = 0;
     string memInit = printMem(0);
-    fprintf(file, "Start Merge case %d\n[Init] %s", casenum, memInit.c_str());
 
-    arr = MergeCut(arr);
+    if (useAverage) {
+        fprintf(file, "Start Merge case %d (Averaged over %d runs)\n[Init] %s", casenum, REPEAT_COUNT, memInit.c_str());
+        auto start = high_resolution_clock::now();
+        for (int i = 0; i < REPEAT_COUNT; ++i) {
+            vector<entry> temp_arr = arr;
+            temp_arr = MergeCut(temp_arr);
+            if (i == 0) r.arr2 = temp_arr;
+        }
+        auto stop = high_resolution_clock::now();
+        total_duration = duration_cast<microseconds>(stop - start).count() / REPEAT_COUNT;
+    } else {
+        fprintf(file, "Start Merge case %d\n[Init] %s", casenum, memInit.c_str());
+        auto start = high_resolution_clock::now();
+        arr = MergeCut(arr);
+        auto stop = high_resolution_clock::now();
+        total_duration = duration_cast<microseconds>(stop - start).count();
+        r.arr2 = arr;
+    }
 
-    auto stop = high_resolution_clock::now();
-    auto dur = duration_cast<microseconds>(stop - timer);
-    r.arr2 = arr;
-    r.timer = dur.count();
+    r.timer = total_duration;
     string memFin = printMem(1);
     fprintf(file, "Finished in %lld us\n[Final] %s\n", r.timer, memFin.c_str());
     fclose(file);
@@ -161,24 +210,42 @@ void heapify(vector<entry>& arr, int n, int i) {
     }
 }
 
-result HeapSort(vector<entry> arr, int casenum) {
+result HeapSort(vector<entry> arr, int casenum, bool useAverage = false) {
     result r;
     FILE* file = fopen(TIMEREC, "a");
-    auto timer = high_resolution_clock::now();
+    int64_t total_duration = 0;
     string memInit = printMem(0);
-    fprintf(file, "Start Heap case %d\n[Init] %s", casenum, memInit.c_str());
 
-    int n = arr.size();
-    for (int i = n / 2 - 1; i >= 0; i--) heapify(arr, n, i);
-    for (int i = n - 1; i > 0; i--) {
-        swap(arr[0], arr[i]);
-        heapify(arr, i, 0);
+    if (useAverage) {
+        fprintf(file, "Start Heap case %d (Averaged over %d runs)\n[Init] %s", casenum, REPEAT_COUNT, memInit.c_str());
+        auto start = high_resolution_clock::now();
+        for (int i = 0; i < REPEAT_COUNT; ++i) {
+            vector<entry> temp_arr = arr;
+            int n = temp_arr.size();
+            for (int j = n / 2 - 1; j >= 0; j--) heapify(temp_arr, n, j);
+            for (int j = n - 1; j > 0; j--) {
+                swap(temp_arr[0], temp_arr[j]);
+                heapify(temp_arr, j, 0);
+            }
+            if (i == 0) r.arr2 = temp_arr;
+        }
+        auto stop = high_resolution_clock::now();
+        total_duration = duration_cast<microseconds>(stop - start).count() / REPEAT_COUNT;
+    } else {
+        fprintf(file, "Start Heap case %d\n[Init] %s", casenum, memInit.c_str());
+        auto start = high_resolution_clock::now();
+        int n = arr.size();
+        for (int i = n / 2 - 1; i >= 0; i--) heapify(arr, n, i);
+        for (int i = n - 1; i > 0; i--) {
+            swap(arr[0], arr[i]);
+            heapify(arr, i, 0);
+        }
+        auto stop = high_resolution_clock::now();
+        total_duration = duration_cast<microseconds>(stop - start).count();
+        r.arr2 = arr;
     }
 
-    auto stop = high_resolution_clock::now();
-    auto dur = duration_cast<microseconds>(stop - timer);
-    r.arr2 = arr;
-    r.timer = dur.count();
+    r.timer = total_duration;
     string memFin = printMem(1);
     fprintf(file, "Finished in %lld us\n[Final] %s\n", r.timer, memFin.c_str());
     fclose(file);
@@ -186,25 +253,53 @@ result HeapSort(vector<entry> arr, int casenum) {
 }
 
 // Composite Sort
-result CompositeSort(vector<entry> arr, int casenum) {
+result CompositeSort(vector<entry> arr, int casenum, bool useAverage = false) {
+    // 開啟記錄檔
     FILE* file = fopen(COMPOSITE_TIMEREC, "a");
-    auto timer = high_resolution_clock::now();
     string memInit = printMem(0);
-    fprintf(file, "Start Composite case %d\n[Init] %s", casenum, memInit.c_str());
+    fprintf(file,
+            "Start Composite case %d%s\n[Init] %s",
+            casenum,
+            useAverage ? " (Averaged)" : "",
+            memInit.c_str());
 
     result r;
-    if (arr.size() <= 32) r = InsertionSort(arr, casenum);
-    else if (arr.size() <= 1000) r = MergeSort(arr, casenum);
-    else if (arr.size() <= 5000) r = HeapSort(arr, casenum);
-    else r = QuickSort(arr, casenum);
+    int64_t sum_timer = 0;
 
-    auto stop = high_resolution_clock::now();
-    auto dur = duration_cast<microseconds>(stop - timer);
+    // 單次執行 Composite 的封裝：根據大小選擇最適算法
+    auto runOnce = [&](const vector<entry>& data) -> result {
+        if (data.size() <= 32)         return InsertionSort(data, casenum, false);
+        else if (data.size() <= 5000)  return HeapSort    (data, casenum, false);
+        else                           return QuickSort   (data, casenum, false);
+    };
+
+    if (useAverage) {
+        // 小資料多次跑，取平均
+        for (int i = 0; i < REPEAT_COUNT; ++i) {
+            result tmp = runOnce(arr);
+            sum_timer += tmp.timer;
+            if (i == 0) {
+                // 只保存第一趟排序結果
+                r.arr2 = std::move(tmp.arr2);
+            }
+        }
+        r.timer = sum_timer / REPEAT_COUNT;
+    } else {
+        // 正常單次執行
+        r = runOnce(arr);
+    }
+
+    // 輸出結束時間與記憶體
     string memFin = printMem(1);
-    fprintf(file, "Composite finished in %lld us\n[Final] %s\n", dur.count(), memFin.c_str());
+    fprintf(file,
+            "Composite finished in %lld us\n[Final] %s\n",
+            r.timer,
+            memFin.c_str());
     fclose(file);
+
     return r;
 }
+
 
 // 測資產生器
 void makeCases(int cases, vector<vector<entry>>& superarray, FILE* unsortedfile, string mode) {
@@ -254,11 +349,12 @@ int main() {
 
     for (int type = 0; type < 4; type++) {
         for (int i = 0, caseNum = 1; i < superarray[type].size(); i++, caseNum++) {
+            bool useAverage = (superarray[type][i].size() <= SMALL_DATA_THRESHOLD);
             switch (type) {
-            case 0: result = InsertionSort(superarray[type][i], caseNum); break;
-            case 1: result = QuickSort(superarray[type][i], caseNum); break;
-            case 2: result = MergeSort(superarray[type][i], caseNum); break;
-            case 3: result = HeapSort(superarray[type][i], caseNum); break;
+            case 0: result = InsertionSort(superarray[type][i], caseNum, useAverage); break;
+            case 1: result = QuickSort(superarray[type][i], caseNum, useAverage); break;
+            case 2: result = MergeSort(superarray[type][i], caseNum, useAverage); break;
+            case 3: result = HeapSort(superarray[type][i], caseNum, useAverage); break;
             }
             fprintf(f_Sorted, "\nCase %d finished in %lld us\n", caseNum, result.timer);
             for (auto& e : result.arr2) e.outputkey(f_Sorted);
@@ -267,7 +363,8 @@ int main() {
 
     // 跑 Composite Sort
     for (int i = 0, caseNum = 1; i < superarray[4].size(); i++, caseNum++) {
-        result = CompositeSort(superarray[4][i], caseNum);
+        bool useAverage = (superarray[4][i].size() <= SMALL_DATA_THRESHOLD);
+        result = CompositeSort(superarray[4][i], caseNum, useAverage);
     }
 
     fclose(f_Unsorted);
