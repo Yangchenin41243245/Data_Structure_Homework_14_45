@@ -41,42 +41,47 @@
 
 ## 時鐘精度
 
-本次作業中，排序演算法的效能主要透過時間消耗（microseconds）進行衡量。為了準確記錄各排序方法的執行時間，我們使用 C++ 標準函式庫中的 `<chrono>` 模組中的 `std::chrono::high_resolution_clock` 作為計時工具，其精度可達微秒等級，適合用於微小時間單位的效能分析。
+本次作業中，排序演算法的效能主要透過時間消耗（微秒，microseconds）進行衡量。為確保執行時間的測量精確，我們使用 C++ 標準函式庫中的 `<chrono>` 模組中的 `std::chrono::high_resolution_clock` 作為計時工具，其精度可達微秒等級，適合用於效能分析。
 
 ### 使用方式
 
-計時範例如下：
+計時方式根據資料量動態調整，支援單次計時與多次執行取平均兩種模式。基本計時範例如下：
 
 ```cpp
 auto start = chrono::high_resolution_clock::now();
 // 排序函式執行
-auto end = chrono::high_resolution_clock::now();
-auto duration = chrono::duration_cast<chrono::microseconds>(end - start);
+auto stop = chrono::high_resolution_clock::now();
+auto duration = chrono::duration_cast<chrono::microseconds>(stop - start).count();
 ```
 
-透過 `chrono::duration_cast` 可精確取得兩個時間點之間的間隔（此處為微秒）。Composite Sort 的計時方式與其他排序法一致，確保比較公平性。
+透過 `chrono::duration_cast` 精確計算兩個時間點之間的間隔（單位為微秒）。所有排序方法（包括 Composite Sort）均採用一致的計時邏輯，確保比較公平性。
 
 ### 測量誤差與處理方式
 
-由於在小筆數資料（如 n = 500）時，排序執行時間可能低於計時器可穩定測量的範圍，導致計時結果為 0 或波動大。為解決此問題，採用以下策略：
+對於小資料量（例如 n ≤ 1000），排序執行時間可能過短，導致計時結果不穩定（如波動大或接近 0 μs）。為解決此問題，程式採用以下策略：
 
-- **重複執行多次後取平均時間**，以降低測量誤差。例如對某個排序函式執行 1000 次並除以總次數：
-  
+- **多次執行取平均時間**：當資料量 ≤ 1000 時，啟用多次執行模式，對排序函式執行 `REPEAT_COUNT`（1000）次，使用陣列副本避免修改原始資料，計算平均時間以降低測量誤差。程式碼範例如下：
+
   ```cpp
-  int repeat = 1000;
-  auto start = chrono::high_resolution_clock::now();
-  for (int i = 0; i < repeat; ++i)
-      yourSortFunction(arr);
-  auto end = chrono::high_resolution_clock::now();
-  auto avg_duration = chrono::duration_cast<chrono::microseconds>(end - start).count() / repeat;
+  const int REPEAT_COUNT = 1000;
+  auto start = high_resolution_clock::now();
+  for (int i = 0; i < REPEAT_COUNT; ++i) {
+      vector<entry> temp_arr = arr; // 陣列副本
+      yourSortFunction(temp_arr);    // 排序
+  }
+  auto stop = high_resolution_clock::now();
+  auto avg_duration = chrono::duration_cast<chrono::microseconds>(stop - start).count() / REPEAT_COUNT;
   ```
 
-- 在正式測試中，我們確保對每組測資僅進行一次排序測試（不重複），以模擬實際使用情境。當發現個別排序法（如 Insertion Sort 或 Composite Sort 在小資料量時）耗時極短時，再單獨進行多次測量以取得更精確數據。
+- **單次計時**：當資料量 > 1000（例如本程式中的 n = 5000）時，僅執行一次排序，直接記錄執行時間，模擬實際使用情境。此方式適用於資料量較大、計時結果穩定的情況。
 
-### 實驗觀察
+在主程式中，根據資料量動態選擇計時模式：
 
-經過測試發現，對於筆數小於 1000 的資料排序，Insertion Sort 和 Composite Sort（選擇 Insertion Sort 的情況）執行時間可能會出現 0 μs 的情形。透過上述方法可有效改善這一問題，使測量更為穩定與可信。
+```cpp
+bool useAverage = (array_size <= SMALL_DATA_THRESHOLD); // SMALL_DATA_THRESHOLD = 1000
+```
 
+由於本程式所有測試用例的資料量均為 5000，實際執行中均採用單次計時模式。然而，程式已完整支援小資料量的多次計時功能，可在資料量 ≤ 1000 時自動啟用。
 ---
 
 ## 效能分析
