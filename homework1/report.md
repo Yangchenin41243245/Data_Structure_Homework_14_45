@@ -78,9 +78,67 @@ auto duration = chrono::duration_cast<chrono::microseconds>(stop - start).count(
 在主程式中，根據資料量動態選擇計時模式：
 
 ```cpp
-bool useAverage = (array_size <= SMALL_DATA_THRESHOLD); // SMALL_DATA_THRESHOLD = 1000
+bool useAverage = (array_size <= SMALL_DATA_THRESHOLD); // SMALL_DATA_THRESHOLD = 100
 ```
 
+---
+
+## 效能分析
+
+#### Insertion Sort
+- **時間複雜度**：
+  - **Worst-case**：O(n²)，當輸入為逆序（程式中生成逆序資料），每次插入需移動所有前元素。
+  - **Average-case**：O(n²)，因每次插入平均需比較和移動約 n/2 個元素。
+- **空間複雜度**：
+  - O(1)，原地排序，僅需常數額外空間（`temp` 變數）。
+- **程式特性**：簡單實現，未優化比較或移動，適合小陣列（n ≤ 32）。
+
+#### Quick Sort
+- **時間複雜度**：
+  - **Worst-case**：O(n²)，當 pivot 選擇不佳（程式中固定選第一元素）且輸入逆序，分割極不平衡。
+  - **Average-case**：O(n log n)，隨機輸入下，分割接近均等。
+- **空間複雜度**：
+  - O(log n)，因遞迴調用棧（平均 O(log n) 層，Worst-case 可達 O(n)）。
+- **程式特性**：固定 pivot（`arr[left]`）導致 Worst-case 頻發，未採用隨機 pivot 或小陣列插入排序優化。
+
+#### Merge Sort
+- **時間複雜度**：
+  - **Worst-case**：O(n log n)，分割和合併均穩定，與輸入無關。
+  - **Average-case keypad**：O(n log n)，合併操作固定。
+- **空間複雜度**：
+  - O(n)，需額外陣列儲存合併結果（程式中 `vector<entry>` 動態分配）。
+- **程式特性**：遞迴實現，穩定但記憶體開銷較大，適合中型資料（32 < n ≤ 1000）。
+
+#### Heap Sort
+- **時間複雜度**：
+  - **Worst-case**：O(n log n)，建堆 O(n)，每次調整堆 O(log n)，共 n 次。
+  - **Average-case**：O(n log n)，對輸入不敏感。
+- **空間複雜度**：
+  - O(1)，原地排序，僅需常數額外空間。
+- **程式特性**：標準最大堆實現，穩定且高效，適合中大型資料（1000 < n ≤ 5000）。
+
+#### Composite Sort
+- **時間複雜度**：
+  - **Worst-case**：取決於選擇的排序法：
+    - n ≤ 32：O(n²)（Insertion Sort）
+    - 32 < n ≤ 1000：O(n log n)（Merge Sort）
+    - 1000 < n ≤ 5000：O(n log n)（Heap Sort）
+    - n > 5000：O(n²)（Quick Sort，Worst-case）
+  - **Average-case**：O(n log n) 為主，當 n > 5000 時接近 Quick Sort 的 O(n log n)。
+- **空間複雜度**：
+  - 取決於選擇的排序法：
+    - Insertion Sort：O(1)
+    - Merge Sort：O(n)
+    - Heap Sort：O(1)
+    - Quick Sort：O(log n)
+- **程式特性**：根據資料大小動態選擇排序法，結合各算法優勢，適用於多種資料規模。
+
+### 總結
+- **Insertion Sort**：時間複雜度高（O(n²)），但空間需求最低，適合小資料。
+- **Quick Sort**：Average-case 高效（O(n log n)），但程式實現易退化到 O(n²)，空間需遞迴棧。
+- **Merge Sort**：時間穩定（O(n log n)），但空間需求高（O(n)）。
+- **Heap Sort**：時間和空間均優（O(n log n), O(1)），為中大型資料良好選擇。
+- **Composite Sort**：根據資料大小選擇最佳排序法，平衡時間與空間需求，適合廣泛應用場景。
 
 ---
 
