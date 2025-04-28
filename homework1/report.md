@@ -722,7 +722,7 @@ int main(void) {
 
 
 
-![image](https://github.com/Yangchenin41243245/Data_Structure_Homework_14_45/blob/proto2/homework1/src/pics/worst.png)
+![image](https://github.com/Yangchenin41243245/Data_Structure_Homework_14_45/blob/main/homework1/src/pic/worst.png)
 
 ### 平均執行時間表格 Average-case Performance (Time in Microseconds)
 
@@ -737,7 +737,7 @@ int main(void) {
 | 5000           | 42292 μs       | 15870 μs   | 31196 μs   | 1257 μs   | 31429 μs       |
 
 
-![image](https://github.com/Yangchenin41243245/Data_Structure_Homework_14_45/blob/proto2/homework1/src/pics/average.png)
+![image](https://github.com/Yangchenin41243245/Data_Structure_Homework_14_45/blob/main/homework1/src/pic/average.png)
 
 ### 時間複雜度趨勢分析
 
