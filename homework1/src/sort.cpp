@@ -13,7 +13,7 @@ using namespace std;
 using namespace chrono;
 
 // 設定常數
-#define CASE_ITEMS 3000
+#define CASE_ITEMS 4000
 #define CASES 5
 #define UNSORTED "D:/work/sort/tosort.txt"
 #define SORTED "D:/work/sort/sorted.txt"
@@ -23,7 +23,9 @@ using namespace chrono;
 #define SMALL_DATA_THRESHOLD 100 // Threshold for small datasets
 
 // 結構與類別
-struct node { int data; };
+struct node { 
+    int data; 
+};
 
 class entry {
 public:
@@ -55,6 +57,9 @@ result InsertionSort(vector<entry> arr, int casenum, bool useAverage = false) {
     FILE* file = fopen(TIMEREC, "a");
     int64_t total_duration = 0;
     string memInit = printMem(0);
+    string sort_name = "insertion";
+    cout << "Start " << sort_name << " sort\n";
+    cout << memInit;
 
     if (useAverage) {
         fprintf(file, "Start Insertion case %d (Averaged over %d runs)\n[Init] %s", casenum, REPEAT_COUNT, memInit.c_str());
@@ -94,6 +99,8 @@ result InsertionSort(vector<entry> arr, int casenum, bool useAverage = false) {
     r.timer = total_duration;
     string memFin = printMem(1);
     fprintf(file, "Finished in %lld us\n[Final] %s\n", r.timer, memFin.c_str());
+    cout << "Sorted array in " << total_duration << " microseconds\n";
+    cout << memFin;
     fclose(file);
     return r;
 }
@@ -119,6 +126,9 @@ result QuickSort(vector<entry> arr, int casenum, bool useAverage = false) {
     FILE* file = fopen(TIMEREC, "a");
     int64_t total_duration = 0;
     string memInit = printMem(0);
+    string sort_name = "quick";
+    cout << "Start " << sort_name << " sort\n";
+    cout << memInit;
 
     if (useAverage) {
         fprintf(file, "Start Quick case %d (Averaged over %d runs)\n[Init] %s", casenum, REPEAT_COUNT, memInit.c_str());
@@ -142,6 +152,8 @@ result QuickSort(vector<entry> arr, int casenum, bool useAverage = false) {
     r.timer = total_duration;
     string memFin = printMem(1);
     fprintf(file, "Finished in %lld us\n[Final] %s\n", r.timer, memFin.c_str());
+    cout << "Sorted array in " << total_duration << " microseconds\n";
+    cout << memFin;
     fclose(file);
     return r;
 }
@@ -172,6 +184,9 @@ result MergeSort(vector<entry> arr, int casenum, bool useAverage = false) {
     FILE* file = fopen(TIMEREC, "a");
     int64_t total_duration = 0;
     string memInit = printMem(0);
+    string sort_name = "merge";
+    cout << "Start " << sort_name << " sort\n";
+    cout << memInit;
 
     if (useAverage) {
         fprintf(file, "Start Merge case %d (Averaged over %d runs)\n[Init] %s", casenum, REPEAT_COUNT, memInit.c_str());
@@ -195,6 +210,8 @@ result MergeSort(vector<entry> arr, int casenum, bool useAverage = false) {
     r.timer = total_duration;
     string memFin = printMem(1);
     fprintf(file, "Finished in %lld us\n[Final] %s\n", r.timer, memFin.c_str());
+    cout << "Sorted array in " << total_duration << " microseconds\n";
+    cout << memFin;
     fclose(file);
     return r;
 }
@@ -215,6 +232,9 @@ result HeapSort(vector<entry> arr, int casenum, bool useAverage = false) {
     FILE* file = fopen(TIMEREC, "a");
     int64_t total_duration = 0;
     string memInit = printMem(0);
+    string sort_name = "heap";
+    cout << "Start " << sort_name << " sort\n";
+    cout << memInit;
 
     if (useAverage) {
         fprintf(file, "Start Heap case %d (Averaged over %d runs)\n[Init] %s", casenum, REPEAT_COUNT, memInit.c_str());
@@ -248,15 +268,19 @@ result HeapSort(vector<entry> arr, int casenum, bool useAverage = false) {
     r.timer = total_duration;
     string memFin = printMem(1);
     fprintf(file, "Finished in %lld us\n[Final] %s\n", r.timer, memFin.c_str());
+    cout << "Sorted array in " << total_duration << " microseconds\n";
+    cout << memFin;
     fclose(file);
     return r;
 }
 
 // Composite Sort
 result CompositeSort(vector<entry> arr, int casenum, bool useAverage = false) {
-    // 開啟記錄檔
     FILE* file = fopen(COMPOSITE_TIMEREC, "a");
     string memInit = printMem(0);
+    string sort_name = "composite";
+    cout << "Start " << sort_name << " sort\n";
+    cout << memInit;
     fprintf(file,
             "Start Composite case %d%s\n[Init] %s",
             casenum,
@@ -266,7 +290,6 @@ result CompositeSort(vector<entry> arr, int casenum, bool useAverage = false) {
     result r;
     int64_t sum_timer = 0;
 
-    // 單次執行 Composite 的封裝：根據大小選擇最適算法
     auto runOnce = [&](const vector<entry>& data) -> result {
         if (data.size() <= 32)         return InsertionSort(data, casenum, false);
         else if (data.size() <= 5000)  return HeapSort    (data, casenum, false);
@@ -274,32 +297,29 @@ result CompositeSort(vector<entry> arr, int casenum, bool useAverage = false) {
     };
 
     if (useAverage) {
-        // 小資料多次跑，取平均
         for (int i = 0; i < REPEAT_COUNT; ++i) {
             result tmp = runOnce(arr);
             sum_timer += tmp.timer;
             if (i == 0) {
-                // 只保存第一趟排序結果
                 r.arr2 = std::move(tmp.arr2);
             }
         }
         r.timer = sum_timer / REPEAT_COUNT;
     } else {
-        // 正常單次執行
         r = runOnce(arr);
     }
 
-    // 輸出結束時間與記憶體
     string memFin = printMem(1);
     fprintf(file,
             "Composite finished in %lld us\n[Final] %s\n",
             r.timer,
             memFin.c_str());
+    cout << "Sorted array in " << r.timer << " microseconds\n";
+    cout << memFin;
     fclose(file);
 
     return r;
 }
-
 
 // 測資產生器
 void makeCases(int cases, vector<vector<entry>>& superarray, FILE* unsortedfile, string mode) {
@@ -323,7 +343,9 @@ void makeCases(int cases, vector<vector<entry>>& superarray, FILE* unsortedfile,
             }
         }
         for (auto& e : array) e.outputkey(unsortedfile);
+        cout << "output unsorted array to file " << UNSORTED << endl;
         superarray.push_back(array);
+        cout << "Created unsorted array for case #" << c + 1 << endl;
     }
 }
 
@@ -333,6 +355,10 @@ int main() {
     remove(UNSORTED);
     remove(TIMEREC);
     remove(COMPOSITE_TIMEREC);
+    cout << "Removed old " << SORTED << endl;
+    cout << "Removed old " << UNSORTED << endl;
+    cout << "Removed old " << TIMEREC << endl;
+    cout << "Removed old " << COMPOSITE_TIMEREC << endl;
 
     FILE* f_Unsorted = fopen(UNSORTED, "a");
     FILE* f_Sorted = fopen(SORTED, "a");
@@ -358,6 +384,7 @@ int main() {
             }
             fprintf(f_Sorted, "\nCase %d finished in %lld us\n", caseNum, result.timer);
             for (auto& e : result.arr2) e.outputkey(f_Sorted);
+            cout << "output sorted array to file " << SORTED << endl;
         }
     }
 
