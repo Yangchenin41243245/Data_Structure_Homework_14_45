@@ -143,8 +143,6 @@ bool useAverage = (array_size <= SMALL_DATA_THRESHOLD); // SMALL_DATA_THRESHOLD 
 
 ---
 
----
-
 ## 程式實作
 
 ### 一. 標頭與基本設置
