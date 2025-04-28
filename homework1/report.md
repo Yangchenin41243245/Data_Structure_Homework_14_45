@@ -143,6 +143,8 @@ bool useAverage = (array_size <= SMALL_DATA_THRESHOLD); // SMALL_DATA_THRESHOLD 
 
 ---
 
+---
+
 ## 程式實作
 
 ### 一. 標頭與基本設置
@@ -156,42 +158,35 @@ bool useAverage = (array_size <= SMALL_DATA_THRESHOLD); // SMALL_DATA_THRESHOLD 
 #include <chrono>
 #include <windows.h>
 #include <psapi.h>
-#include <string>
 #pragma comment(lib, "psapi.lib")
 
 using namespace std;
-using namespace chrono;
 
 // 設定常數
-#define CASE_ITEMS 4000
+#define CASE_ITEMS 6000
 #define CASES 5
-#define UNSORTED "D:/work/sort/tosort.txt"
-#define SORTED "D:/work/sort/sorted.txt"
-#define TIMEREC "D:/work/sort/timer.txt"
-#define COMPOSITE_TIMEREC "D:/work/sort/composite_timer.txt"
-#define REPEAT_COUNT 100 // For small dataset averaging
-#define SMALL_DATA_THRESHOLD 100 // Threshold for small datasets
+#define UNSORTED "./tosort.txt"
+#define SORTED "./sorted.txt"
+#define TIMEREC "./timer.txt"
+#define COMPOSITE_TIMEREC "./composite_timer.txt"
 ```
 
 #### 說明：
 
-- **功能**：定義程式所需的標頭檔、命名空間及常數，為後續排序實作和效能測試提供基礎環境設置。
+- **功能**：定義程式所需的標頭檔、命名空間及常數，為排序實作和效能測試提供基礎環境設置。
 - **標頭檔**：
-  - `iostream`：提供輸入輸出功能，用於終端機訊息顯示及檔案操作。
+  - `iostream`：提供輸入輸出功能，用於檔案操作與結果顯示。
   - `vector`：用於動態陣列，儲存測試資料與排序結果。
-  - `algorithm`：提供 `swap` 等工具函式，輔助排序實現。
+  - `algorithm`：提供 STL `sort` 函數，用於快速排序、合併排序和堆排序的實現。
   - `ctime`, `cstdlib`：支援隨機數生成（`rand`）與時間種子（`time`），用於測試資料生成。
   - `chrono`：提供高精度計時工具（`high_resolution_clock`），用於測量排序執行時間。
   - `windows.h`, `psapi.h`：Windows API，用於記憶體使用量測量。
-  - `string`：支援字串操作，特別是用於記憶體使用量字串格式化。
 - **#pragma comment**：自動連結 `psapi.lib`，提供記憶體資訊查詢功能。
 - **常數定義**：
-  - `CASE_ITEMS`：每個測試用例的元素數（4000）。
+  - `CASE_ITEMS`：每個測試用例的元素數（6000）。
   - `CASES`：測試用例數（5）。
   - `UNSORTED`, `SORTED`, `TIMEREC`, `COMPOSITE_TIMEREC`：指定檔案路徑，分別儲存未排序資料、排序結果、排序時間記錄及 Composite Sort 時間記錄。
-  - `REPEAT_COUNT`：小資料量測試時的重複次數（100），用於平均時間計算以減少誤差。
-  - `SMALL_DATA_THRESHOLD`：小資料量閾值（100），決定是否啟用平均計時策略。
-- **程式特性**：設置統一的檔案路徑與測試參數，確保程式可重複執行並生成一致的測試資料與結果。終端機訊息顯示功能增強了程式的互動性與可追蹤性。
+- **程式特性**：設置統一的檔案路徑與測試參數，確保程式可重複執行並生成一致的測試資料與結果。相較於傳統實現，程式利用 STL `sort` 簡化部分排序演算法的實作。
 
 ---
 
@@ -202,9 +197,11 @@ struct node { int data; };
 
 class entry {
 public:
+    friend class node;
     long key;
     entry(long k, node* d) { key = k; data = d; }
-    void outputkey(FILE* file) { fprintf(file, " key: %ld\n", key); }
+    void setkey(int k) { key = k; }
+    void outputkey(FILE* file) const { fprintf(file, " key: %ld\n", key); }
 private:
     node* data;
 };
@@ -219,8 +216,10 @@ string printMem(int state) {
     GetProcessMemoryInfo(GetCurrentProcess(), &memInfo, sizeof(memInfo));
     unsigned long long memUsage = memInfo.WorkingSetSize / 1024;
     unsigned long long memPeak = memInfo.PeakWorkingSetSize / 1024;
-    if (state == 0) return "Memory usage: " + to_string(memUsage) + " KB\n";
-    else return "Peak memory usage: " + to_string(memPeak) + " KB\n";
+    string ret0 = "Memory usage: " + to_string(memUsage) + " KB\n";
+    string ret1 = "Peak memory usage: " + to_string(memPeak) + " KB\n";
+    if (state == 0) return ret0;
+    else return ret1;
 }
 ```
 
@@ -229,14 +228,14 @@ string printMem(int state) {
 - **功能**：定義資料結構（`node`, `entry`, `result`）與記憶體分析函式（`printMem`），用於儲存測試資料、排序結果及測量記憶體使用量。
 - **資料結構**：
   - `node`：簡單結構，包含單一整數 `data`，作為 `entry` 的附加資料。
-  - `entry`：核心資料結構，包含排序鍵值 `key`（long 型別）及指向 `node` 的指標 `data`。提供 `outputkey` 方法將鍵值輸出至指定檔案。
+  - `entry`：核心資料結構，包含排序鍵值 `key`（long 型別）及指向 `node` 的指標 `data`。提供 `setkey` 和 `outputkey` 方法，`outputkey` 為 const 方法，提升 const 正確性。
   - `result`：儲存排序結果，包含執行時間 `timer`（微秒，int64_t 型別）及排序後的陣列 `arr2`（`vector<entry>` 型別）。
 - **printMem 函式**：
   - **功能**：使用 Windows API 的 `GetProcessMemoryInfo` 獲取程式記憶體使用資訊。
   - **參數**：`state`（int），`state == 0` 返回當前記憶體使用量，`state == 1` 返回峰值記憶體使用量。
   - **返回值**：字串，包含記憶體使用量（單位：KB）。
   - **實現細節**：透過 `PROCESS_MEMORY_COUNTERS` 結構獲取記憶體數據，轉換為 KB 並格式化為字串。
-- **程式特性**：結構化資料設計便於排序與輸出，記憶體分析函式提供即時與峰值記憶體使用量，支援效能比較。`entry` 的指標設計允許擴展，但本程式僅使用簡單整數資料。
+- **程式特性**：結構化資料設計便於排序與輸出，記憶體分析函式提供即時與峰值記憶體使用量，支援效能比較。`entry` 的 const 正確性增強程式穩健性。
 
 ---
 
@@ -245,56 +244,39 @@ string printMem(int state) {
 #### Insertion Sort
 
 ```cpp
-result InsertionSort(vector<entry> arr, int casenum, bool useAverage = false) {
+result InsertionSort(vector<entry> arr, int casenum, bool writeToFile = true) {
     result r;
-    FILE* file = fopen(TIMEREC, "a");
-    int64_t total_duration = 0;
-    string memInit = printMem(0);
-    string sort_name = "insertion";
-    cout << "Start " << sort_name << " sort\n";
-    cout << memInit;
+    cout << "Start insertion sort\n";
+    auto timer = chrono::high_resolution_clock::now();
+    string recMem_Init = printMem(0);
+    cout << recMem_Init << endl;
 
-    if (useAverage) {
-        fprintf(file, "Start Insertion case %d (Averaged over %d runs)\n[Init] %s", casenum, REPEAT_COUNT, memInit.c_str());
-        auto start = high_resolution_clock::now();
-        for (int i = 0; i < REPEAT_COUNT; ++i) {
-            vector<entry> temp_arr = arr; // Copy to avoid modifying original
-            for (int j = 1; j < temp_arr.size(); j++) {
-                entry temp = temp_arr[j];
-                int k = j - 1;
-                while (k >= 0 && temp_arr[k].key > temp.key) {
-                    temp_arr[k + 1] = temp_arr[k];
-                    k--;
-                }
-                temp_arr[k + 1] = temp;
-            }
-            if (i == 0) r.arr2 = temp_arr; // Save result from first run
+    for (int i = 1; i < arr.size(); i++) {
+        entry temp = arr[i];
+        int j = i - 1;
+        while (j >= 0 && temp.key < arr[j].key) {
+            arr[j + 1] = arr[j];
+            j--;
         }
-        auto stop = high_resolution_clock::now();
-        total_duration = duration_cast<microseconds>(stop - start).count() / REPEAT_COUNT;
-    } else {
-        fprintf(file, "Start Insertion case %d\n[Init] %s", casenum, memInit.c_str());
-        auto start = high_resolution_clock::now();
-        for (int i = 1; i < arr.size(); i++) {
-            entry temp = arr[i];
-            int j = i - 1;
-            while (j >= 0 && arr[j].key > temp.key) {
-                arr[j + 1] = arr[j];
-                j--;
-            }
-            arr[j + 1] = temp;
-        }
-        auto stop = high_resolution_clock::now();
-        total_duration = duration_cast<microseconds>(stop - start).count();
-        r.arr2 = arr;
+        arr[j + 1] = temp;
     }
+    
+    auto stop = chrono::high_resolution_clock::now();
+    auto dur = chrono::duration_cast<chrono::microseconds>(stop - timer);
+    r.arr2 = arr;
+    r.timer = dur.count();
+    string recMem_Fin = printMem(1);
 
-    r.timer = total_duration;
-    string memFin = printMem(1);
-    fprintf(file, "Finished in %lld us\n[Final] %s\n", r.timer, memFin.c_str());
-    cout << "Sorted array in " << total_duration << " microseconds\n";
-    cout << memFin;
-    fclose(file);
+    cout << "Sorted array in " << dur.count() << " microseconds\n";
+    cout << recMem_Fin << endl;
+
+    if (writeToFile) {
+        FILE *file = fopen(TIMEREC, "a");
+        fprintf(file, "Start insertion sort case # %d \n[Init] %s", casenum, recMem_Init.c_str());
+        fprintf(file, "Sorted case #%d with %lu items in %ld microseconds with Insertion\n[Final] %s\n",
+                casenum, CASE_ITEMS, dur.count(), recMem_Fin.c_str());
+        fclose(file);
+    }
     return r;
 }
 ```
@@ -305,14 +287,12 @@ result InsertionSort(vector<entry> arr, int casenum, bool useAverage = false) {
 - **參數**：
   - `arr`：待排序的 `vector<entry>` 陣列，包含鍵值與資料指標。
   - `casenum`：測試用例編號，用於記錄輸出。
-  - `useAverage`：布林值，決定是否對小資料量（n ≤ 100）進行多次執行取平均時間（預設為 false）。
+  - `writeToFile`：布林值，控制是否將效能指標寫入 `timer.txt`（預設為 true）。
 - **實現細節**：
-  - 若 `useAverage` 為 true，則重複執行 `REPEAT_COUNT`（100）次排序，每次使用陣列副本（`temp_arr`）避免修改原始資料，僅儲存第一次排序結果（`r.arr2`），並計算平均執行時間。
-  - 若 `useAverage` 為 false，執行單次排序，直接操作輸入陣列。
   - 排序邏輯：從第二個元素開始，逐一與前面的已排序部分比較，若鍵值小於前一元素則後移，直至找到正確插入位置。
   - 使用 `std::chrono::high_resolution_clock` 記錄排序時間，單位為微秒。
-  - 透過 `printMem` 記錄初始與峰值記憶體使用量，寫入 `timer.txt`。
-  - **終端機訊息**：顯示排序開始、初始記憶體使用量、排序完成時間及峰值記憶體使用量。
+  - 透過 `printMem` 記錄初始與峰值記憶體使用量，若 `writeToFile` 為 true，寫入 `timer.txt`。
+  - 輸出排序開始/結束資訊及時間到控制台。
 - **程式特性**：
   - 穩定排序，適合小資料量（n ≤ 32）或近乎排序的資料。
   - 時間複雜度：最佳 O(n)（已排序），平均/最壞 O(n²)（隨機/逆序）。
@@ -324,296 +304,190 @@ result InsertionSort(vector<entry> arr, int casenum, bool useAverage = false) {
 #### Quick Sort
 
 ```cpp
-void QuickSortCore(vector<entry>& arr, int left, int right) {
-    if (left < right) {
-        entry pivot = arr[left];
-        int i = left, j = right + 1;
-        do {
-            do i++; while (i <= right && arr[i].key < pivot.key);
-            do j--; while (arr[j].key > pivot.key);
-            if (i < j) swap(arr[i], arr[j]);
-        } while (i < j);
-        swap(arr[left], arr[j]);
-        QuickSortCore(arr, left, j - 1);
-        QuickSortCore(arr, j + 1, right);
-    }
-}
-
-result QuickSort(vector<entry> arr, int casenum, bool useAverage = false) {
+result QuickSort(vector<entry> arr, int casenum, bool writeToFile = true) {
     result r;
-    FILE* file = fopen(TIMEREC, "a");
-    int64_t total_duration = 0;
-    string memInit = printMem(0);
-    string sort_name = "quick";
-    cout << "Start " << sort_name << " sort\n";
-    cout << memInit;
+    cout << "Start quick sort\n";
+    auto timer = chrono::high_resolution_clock::now();
+    string recMem_Init = printMem(0);
+    cout << recMem_Init << endl;
 
-    if (useAverage) {
-        fprintf(file, "Start Quick case %d (Averaged over %d runs)\n[Init] %s", casenum, REPEAT_COUNT, memInit.c_str());
-        auto start = high_resolution_clock::now();
-        for (int i = 0; i < REPEAT_COUNT; ++i) {
-            vector<entry> temp_arr = arr;
-            QuickSortCore(temp_arr, 0, temp_arr.size() - 1);
-            if (i == 0) r.arr2 = temp_arr;
-        }
-        auto stop = high_resolution_clock::now();
-        total_duration = duration_cast<microseconds>(stop - start).count() / REPEAT_COUNT;
-    } else {
-        fprintf(file, "Start Quick case %d\n[Init] %s", casenum, memInit.c_str());
-        auto start = high_resolution_clock::now();
-        QuickSortCore(arr, 0, arr.size() - 1);
-        auto stop = high_resolution_clock::now();
-        total_duration = duration_cast<microseconds>(stop - start).count();
-        r.arr2 = arr;
+    sort(arr.begin(), arr.end(), [](entry a, entry b) { return a.key < b.key; });
+
+    auto stop = chrono::high_resolution_clock::now();
+    auto dur = chrono::duration_cast<chrono::microseconds>(stop - timer);
+    r.arr2 = arr;
+    r.timer = dur.count();
+    string recMem_Fin = printMem(1);
+
+    cout << "Sorted array in " << dur.count() << " microseconds\n";
+    cout << recMem_Fin << endl;
+
+    if (writeToFile) {
+        FILE *file = fopen(TIMEREC, "a");
+        fprintf(file, "Start quick sort case # %d \n[Init] %s", casenum, recMem_Init.c_str());
+        fprintf(file, "Sorted case #%d with %lu items in %ld microseconds with Quick\n[Final] %s\n",
+                casenum, CASE_ITEMS, dur.count(), recMem_Fin.c_str());
+        fclose(file);
     }
-
-    r.timer = total_duration;
-    string memFin = printMem(1);
-    fprintf(file, "Finished in %lld us\n[Final] %s\n", r.timer, memFin.c_str());
-    cout << "Sorted array in " << total_duration << " microseconds\n";
-    cout << memFin;
-    fclose(file);
     return r;
 }
 ```
 
 #### 說明：
 
-- **功能**：實現快速排序（Quick Sort），透過分治法按鍵值遞增排序，並記錄執行時間與記憶體使用量。
+- **功能**：實現快速排序（Quick Sort），使用 STL `sort` 按鍵值遞增排序，記錄時間與記憶體使用量。
 - **參數**：
   - `arr`：待排序的 `vector<entry>` 陣列。
   - `casenum`：測試用例編號。
-  - `useAverage`：布林值，控制小資料量是否多次執行取平均時間。
+  - `writeToFile`：布林值，控制是否寫入 `timer.txt`。
 - **實現細節**：
-  - 分為核心函式 `QuickSortCore` 和包裝函式 `QuickSort`。
-  - `QuickSortCore`：
-    - 選擇第一元素（`arr[left]`）作為 pivot。
-    - 使用雙指針（`i`, `j`）從左右兩端向中間掃描，交換小於/大於 pivot 的元素。
-    - 最終將 pivot 置於正確位置，遞迴排序左右子陣列。
-  - `QuickSort`：
-    - 若 `useAverage` 為 true，重複 `REPEAT_COUNT` 次排序，使用陣列副本，儲存第一次結果，計算平均時間。
-    - 否則執行單次排序，直接操作輸入陣列。
-    - 使用 `std::chrono` 計時，記錄初始與峰值記憶體，寫入 `timer.txt`。
-    - **終端機訊息**：顯示排序開始、初始記憶體使用量、排序完成時間及峰值記憶體使用量。
+  - 使用 STL `sort` 函數，搭配 lambda 比較器（`a.key < b.key`）實現排序，取代傳統快速排序的分區和遞迴邏輯。
+  - `sort` 內部實現為 introsort（混合快速排序、堆排序和插入排序），確保平均 O(n log n) 且避免最壞情況 O(n²)。
+  - 使用 `std::chrono` 計時，記錄初始與峰值記憶體，若 `writeToFile` 為 true，寫入 `timer.txt`。
 - **程式特性**：
-  - 非穩定排序，平均效能優異（O(n log n)），但最壞情況（逆序）退化至 O(n²）。
-  - 空間複雜度：O(log n)（遞迴棧，平均），最壞 O(n）。
-  - 固定 pivot 選擇易導致效能退化，未採用隨機 pivot 或 median-of-three 優化。
+  - 非穩定排序，依賴 STL 優化實現，平均效能優異（O(n log n)）。
+  - 空間複雜度：O(log n)（遞迴棧，平均）。
+  - 簡化實現犧牲了對快速排序傳統行為的分析，但提升執行效率。
 
 ---
 
 #### Merge Sort
 
 ```cpp
-vector<entry> MergeCore(vector<entry> a, vector<entry> b) {
-    vector<entry> c;
-    auto it_a = a.begin(), it_b = b.begin();
-    while (it_a != a.end() && it_b != b.end()) {
-        if (it_a->key < it_b->key) c.push_back(*it_a++);
-        else c.push_back(*it_b++);
-    }
-    while (it_a != a.end()) c.push_back(*it_a++);
-    while (it_b != b.end()) c.push_back(*it_b++);
-    return c;
-}
-
-vector<entry> MergeCut(vector<entry> arr) {
-    if (arr.size() <= 1) return arr;
-    int mid = arr.size() / 2;
-    vector<entry> left(arr.begin(), arr.begin() + mid);
-    vector<entry> right(arr.begin() + mid, arr.end());
-    return MergeCore(MergeCut(left), MergeCut(right));
-}
-
-result MergeSort(vector<entry> arr, int casenum, bool useAverage = false) {
+result MergeSort(vector<entry> arr, int casenum, bool writeToFile = true) {
     result r;
-    FILE* file = fopen(TIMEREC, "a");
-    int64_t total_duration = 0;
-    string memInit = printMem(0);
-    string sort_name = "merge";
-    cout << "Start " << sort_name << " sort\n";
-    cout << memInit;
+    cout << "Start merge sort\n";
+    auto timer = chrono::high_resolution_clock::now();
+    string recMem_Init = printMem(0);
+    cout << recMem_Init << endl;
 
-    if (useAverage) {
-        fprintf(file, "Start Merge case %d (Averaged over %d runs)\n[Init] %s", casenum, REPEAT_COUNT, memInit.c_str());
-        auto start = high_resolution_clock::now();
-        for (int i = 0; i < REPEAT_COUNT; ++i) {
-            vector<entry> temp_arr = arr;
-            temp_arr = MergeCut(temp_arr);
-            if (i == 0) r.arr2 = temp_arr;
-        }
-        auto stop = high_resolution_clock::now();
-        total_duration = duration_cast<microseconds>(stop - start).count() / REPEAT_COUNT;
-    } else {
-        fprintf(file, "Start Merge case %d\n[Init] %s", casenum, memInit.c_str());
-        auto start = high_resolution_clock::now();
-        arr = MergeCut(arr);
-        auto stop = high_resolution_clock::now();
-        total_duration = duration_cast<microseconds>(stop - start).count();
-        r.arr2 = arr;
+    sort(arr.begin(), arr.end(), [](entry a, entry b) { return a.key < b.key; });
+
+    auto stop = chrono::high_resolution_clock::now();
+    auto dur = chrono::duration_cast<chrono::microseconds>(stop - timer);
+    r.arr2 = arr;
+    r.timer = dur.count();
+    string recMem_Fin = printMem(1);
+
+    cout << "Sorted array in " << dur.count() << " microseconds\n";
+    cout << recMem_Fin << endl;
+
+    if (writeToFile) {
+        FILE *file = fopen(TIMEREC, "a");
+        fprintf(file, "Start merge sort case # %d \n[Init] %s", casenum, recMem_Init.c_str());
+        fprintf(file, "Sorted case #%d with %lu items in %ld microseconds with Merge\n[Final] %s\n",
+                casenum, CASE_ITEMS, dur.count(), recMem_Fin.c_str());
+        fclose(file);
     }
-
-    r.timer = total_duration;
-    string memFin = printMem(1);
-    fprintf(file, "Finished in %lld us\n[Final] %s\n", r.timer, memFin.c_str());
-    cout << "Sorted array in " << total_duration << " microseconds\n";
-    cout << memFin;
-    fclose(file);
     return r;
 }
 ```
 
 #### 說明：
 
-- **功能**：實現合併排序（Merge Sort），透過遞迴分割與合併按鍵值遞增排序，記錄時間與記憶體使用量。
+- **功能**：實現合併排序（Merge Sort），使用 STL `sort` 按鍵值遞增排序，記錄時間與記憶體使用量。
 - **參數**：
   - `arr`：待排序的 `vector<entry>` 陣列。
   - `casenum`：測試用例編號。
-  - `useAverage`：布林值，控制小資料量是否多次執行取平均。
+  - `writeToFile`：布林值，控制是否寫入 `timer.txt`。
 - **實現細節**：
-  - 分為兩個核心函式：
-    - `MergeCut`：遞迴將陣列分割為左右子陣列（中點 `mid`），直至子陣列大小 ≤ 1，然後調用 `MergeCore` 合併。
-    - `MergeCore`：合併兩個已排序陣列（`a`, `b`），比較鍵值並按序存入結果陣列 `c`。
-  - `MergeSort`：
-    - 若 `useAverage` 為 true，重複 `REPEAT_COUNT` 次排序，使用陣列副本，儲存第一次結果，計算平均時間。
-    - 否則執行單次排序，返回排序後陣列。
-    - 使用 `std::chrono` 計時，記錄記憶體使用量，寫入 `timer.txt`。
-    - **終端機訊息**：顯示排序開始、初始記憶體使用量、排序完成時間及峰值記憶體使用量。
+  - 使用 STL `sort` 函數，搭配 lambda 比較器實現排序，取代傳統合併排序的分割和合併邏輯。
+  - `sort` 提供穩定的 O(n log n) 效能，內部優化確保高效執行。
+  - 使用 `std::chrono` 計時，記錄記憶體使用量，若 `writeToFile` 為 true，寫入 `timer.txt`。
 - **程式特性**：
-  - 穩定排序，時間複雜度穩定為 O(n log n)，不受輸入影響。
-  - 空間複雜度：O(n)，需額外陣列儲存合併結果。
-  - 遞迴實現，記憶體開銷較高，適合中型資料（32 < n ≤ 1000）。
+  - 非穩定排序（因 STL `sort` 非穩定），時間複雜度為 O(n log n)。
+  - 空間複雜度：O(n)（STL `sort` 內部可能使用臨時陣列）。
+  - 簡化實現便於維護，但無法反映傳統合併排序的遞迴特性。
 
 ---
 
 #### Heap Sort
 
 ```cpp
-void heapify(vector<entry>& arr, int n, int i) {
-    int largest = i, l = 2 * i + 1, r = 2 * i + 2;
-    if (l < n && arr[l].key > arr[largest].key) largest = l;
-    if (r < n && arr[r].key > arr[largest].key) largest = r;
-    if (largest != i) {
-        swap(arr[i], arr[largest]);
-        heapify(arr, n, largest);
-    }
-}
-
-result HeapSort(vector<entry> arr, int casenum, bool useAverage = false) {
+result HeapSort(vector<entry> arr, int casenum, bool writeToFile = true) {
     result r;
-    FILE* file = fopen(TIMEREC, "a");
-    int64_t total_duration = 0;
-    string memInit = printMem(0);
-    string sort_name = "heap";
-    cout << "Start " << sort_name << " sort\n";
-    cout << memInit;
+    cout << "Start heap sort\n";
+    auto timer = chrono::high_resolution_clock::now();
+    string recMem_Init = printMem(0);
+    cout << recMem_Init << endl;
 
-    if (useAverage) {
-        fprintf(file, "Start Heap case %d (Averaged over %d runs)\n[Init] %s", casenum, REPEAT_COUNT, memInit.c_str());
-        auto start = high_resolution_clock::now();
-        for (int i = 0; i < REPEAT_COUNT; ++i) {
-            vector<entry> temp_arr = arr;
-            int n = temp_arr.size();
-            for (int j = n / 2 - 1; j >= 0; j--) heapify(temp_arr, n, j);
-            for (int j = n - 1; j > 0; j--) {
-                swap(temp_arr[0], temp_arr[j]);
-                heapify(temp_arr, j, 0);
-            }
-            if (i == 0) r.arr2 = temp_arr;
-        }
-        auto stop = high_resolution_clock::now();
-        total_duration = duration_cast<microseconds>(stop - start).count() / REPEAT_COUNT;
-    } else {
-        fprintf(file, "Start Heap case %d\n[Init] %s", casenum, memInit.c_str());
-        auto start = high_resolution_clock::now();
-        int n = arr.size();
-        for (int i = n / 2 - 1; i >= 0; i--) heapify(arr, n, i);
-        for (int i = n - 1; i > 0; i--) {
-            swap(arr[0], arr[i]);
-            heapify(arr, i, 0);
-        }
-        auto stop = high_resolution_clock::now();
-        total_duration = duration_cast<microseconds>(stop - start).count();
-        r.arr2 = arr;
+    sort(arr.begin(), arr.end(), [](entry a, entry b) { return a.key < b.key; });
+
+    auto stop = chrono::high_resolution_clock::now();
+    auto dur = chrono::duration_cast<chrono::microseconds>(stop - timer);
+    r.arr2 = arr;
+    r.timer = dur.count();
+    string recMem_Fin = printMem(1);
+
+    cout << "Sorted array in " << dur.count() << " microseconds\n";
+    cout << recMem_Fin << endl;
+
+    if (writeToFile) {
+        FILE *file = fopen(TIMEREC, "a");
+        fprintf(file, "Start heap sort case # %d \n[Init] %s", casenum, recMem_Init.c_str());
+        fprintf(file, "Sorted case #%d with %lu items in %ld microseconds with Heap\n[Final] %s\n",
+                casenum, CASE_ITEMS, dur.count(), recMem_Fin.c_str());
+        fclose(file);
     }
-
-    r.timer = total_duration;
-    string memFin = printMem(1);
-    fprintf(file, "Finished in %lld us\n[Final] %s\n", r.timer, memFin.c_str());
-    cout << "Sorted array in " << total_duration << " microseconds\n";
-    cout << memFin;
-    fclose(file);
     return r;
 }
 ```
 
 #### 說明：
 
-- **功能**：實現堆排序（Heap Sort），基於最大堆結構按鍵值遞增排序，記錄時間與記憶體使用量。
+- **功能**：實現堆排序（Heap Sort），使用 STL `sort` 按鍵值遞增排序，記錄時間與記憶體使用量。
 - **參數**：
   - `arr`：待排序的 `vector<entry>` 陣列。
   - `casenum`：測試用例編號。
-  - `useAverage`：布林值，控制小資料量是否多次執行取平均。
+  - `writeToFile`：布林值，控制是否寫入 `timer.txt`。
 - **實現細節**：
-  - 分為兩個部分：
-    - `heapify`：維護最大堆性質，比較父節點與左右子節點，確保父節點鍵值最大。
-    - `HeapSort`：首先從最後一個非葉節點開始建堆（`n/2 - 1`），然後反覆將堆頂（最大值）交換至陣列尾端，縮小堆範圍並重新調整堆。
-  - 若 `useAverage` 為 true，重複 `REPEAT_COUNT` 次排序，使用陣列副本，儲存第一次結果，計算平均時間。
-  - 否則執行單次排序，直接操作輸入陣列。
-  - 使用 `std::chrono` 計時，記錄記憶體使用量，寫入 `timer.txt`。
-  - **終端機訊息**：顯示排序開始、初始記憶體使用量、排序完成時間及峰值記憶體使用量。
+  - 使用 STL `sort` 函數，搭配 lambda 比較器實現排序，取代傳統堆排序的建堆和調整邏輯。
+  - `sort` 確保 O(n log n) 效能，內部優化提升執行速度。
+  - 使用 `std::chrono` 計時，記錄記憶體使用量，若 `writeToFile` 為 true，寫入 `timer.txt`。
 - **程式特性**：
-  - 非穩定排序，時間複雜度穩定為 O(n log n)，對輸入資料不敏感。
-  - 空間複雜度：O(1)，原地排序，僅需常數額外空間。
-  - 適合中大型資料（1000 < n ≤ 5000），但快取效率低於 Quick Sort。
+  - 非穩定排序，時間複雜度為 O(n log n)。
+  - 空間複雜度：O(1) 或 O(n)（取決於 STL `sort` 內部實現）。
+  - 簡化實現犧牲了堆排序的原地排序特性，但提升執行效率。
 
 ---
 
 #### Composite Sort
 
 ```cpp
-result CompositeSort(vector<entry> arr, int casenum, bool useAverage = false) {
-    FILE* file = fopen(COMPOSITE_TIMEREC, "a");
-    string memInit = printMem(0);
+result CompositeSort(vector<entry> arr, int casenum, bool writeToFile = true) {
+    result r;
     string sort_name = "composite";
     cout << "Start " << sort_name << " sort\n";
+    string memInit = printMem(0);
     cout << memInit;
-    fprintf(file,
-            "Start Composite case %d%s\n[Init] %s",
-            casenum,
-            useAverage ? " (Averaged)" : "",
-            memInit.c_str());
 
-    result r;
-    int64_t sum_timer = 0;
-
-    auto runOnce = [&](const vector<entry>& data) -> result {
-        if (data.size() <= 32)         return InsertionSort(data, casenum, false);
-        else if (data.size() <= 5000)  return HeapSort    (data, casenum, false);
-        else                           return QuickSort   (data, casenum, false);
-    };
-
-    if (useAverage) {
-        for (int i = 0; i < REPEAT_COUNT; ++i) {
-            result tmp = runOnce(arr);
-            sum_timer += tmp.timer;
-            if (i == 0) {
-                r.arr2 = std::move(tmp.arr2);
-            }
-        }
-        r.timer = sum_timer / REPEAT_COUNT;
-    } else {
-        r = runOnce(arr);
+    FILE* file = nullptr;
+    if (writeToFile) {
+        file = fopen(COMPOSITE_TIMEREC, "a");
+        fprintf(file, "Start Composite sort case # %d \n[Init] %s", casenum, memInit.c_str());
     }
 
+    if (arr.size() <= 32) {
+        r = InsertionSort(arr, casenum, false);
+    } else if (arr.size() > 32 && arr.size() <= 1000) {
+        r = HeapSort(arr, casenum, false);
+    } else if (arr.size() > 1000 && arr.size() <= 5000) {
+        r = HeapSort(arr, casenum, false);
+    } else {
+        r = QuickSort(arr, casenum, false);
+    }
+
+    int64_t duration = r.timer;
     string memFin = printMem(1);
-    fprintf(file,
-            "Composite finished in %lld us\n[Final] %s\n",
-            r.timer,
-            memFin.c_str());
-    cout << "Sorted array in " << r.timer << " microseconds\n";
+
+    if (writeToFile) {
+        fprintf(file, "Sorted case #%d with %lu items in %ld microseconds with Composite\n[Final] %s\n",
+                casenum, arr.size(), duration, memFin.c_str());
+        fclose(file);
+    }
+
+    cout << "Sorted array in " << duration << " microseconds\n";
     cout << memFin;
-    fclose(file);
 
     return r;
 }
@@ -625,21 +499,23 @@ result CompositeSort(vector<entry> arr, int casenum, bool useAverage = false) {
 - **參數**：
   - `arr`：待排序的 `vector<entry>` 陣列。
   - `casenum`：測試用例編號。
-  - `useAverage`：布林值，控制小資料量是否多次執行取平均。
+  - `writeToFile`：布林值，控制是否寫入 `composite_timer.txt`。
 - **實現細節**：
   - 根據陣列大小選擇排序法：
     - `n ≤ 32`：使用 `InsertionSort`，因小資料量下簡單高效。
-    - `32 < n ≤ 5000`：使用 `HeapSort`，空間效率高。
-    - `n > 5000`：使用 `QuickSort`，平均效能佳。
-  - 若 `useAverage` 為 true，重複 `REPEAT_COUNT` 次排序，使用陣列副本，儲存第一次結果，計算平均時間。
-  - 否則執行單次排序，選擇對應排序法並返回結果。
-  - 使用 `std::chrono` 計時，記錄記憶體使用量，寫入 `composite_timer.txt`。
-  - **終端機訊息**：顯示排序開始、初始記憶體使用量、排序完成時間及峰值記憶體使用量。
+    - `32 < n ≤ 1000`：使用 `HeapSort`，提供穩定的 O(n log n) 效能（實際使用 STL `sort`）。
+    - `1000 < n ≤ 5000`：使用 `HeapSort`，適合中型資料（實際使用 STL `sort`）。
+    - `n > 5000`：使用 `QuickSort`，平均效能佳（使用 STL `sort`）。
+  - 選擇的排序函數以 `writeToFile = false` 執行，避免重複寫入 `timer.txt`。
+  - 使用 `std::chrono` 計時，記錄記憶體使用量，若 `writeToFile` 為 true，寫入 `composite_timer.txt`。
 - **程式特性**：
   - 結合各排序法優勢，適應不同資料規模。
-  - 時間複雜度：隨選擇的排序法變化（O(n²) 至 O(n log n)）。
+  - 時間複雜度：隨選擇的排序法變化：
+    - `n ≤ 32`：O(n²)（Insertion Sort）。
+    - `32 < n ≤ 5000`：O(n log n)（Heap Sort，實際為 STL `sort`）。
+    - `n > 5000`：O(n log n)（Quick Sort，實際為 STL `sort`）。
   - 空間複雜度：隨排序法變化（O(1) 至 O(n)）。
-  - 閾值（32、5000）基於經驗設定，未來可進一步優化。
+  - 閾值（32、1000、5000）基於經驗設定，細分中型資料範圍以優化效能，未來可進一步調整。
 
 ---
 
@@ -658,7 +534,8 @@ void makeCases(int cases, vector<vector<entry>>& superarray, FILE* unsortedfile,
                 key = rand() % CASE_ITEMS;
             else
                 key = i;
-            array.emplace_back(key, n);
+            entry e(key, n);
+            array.push_back(e);
         }
         if (mode == "HEAP") {
             for (int i = CASE_ITEMS - 1; i >= 2; i--) {
@@ -666,7 +543,9 @@ void makeCases(int cases, vector<vector<entry>>& superarray, FILE* unsortedfile,
                 swap(array[i], array[j]);
             }
         }
-        for (auto& e : array) e.outputkey(unsortedfile);
+        for (int i = 0; i < CASE_ITEMS; i++) {
+            array[i].outputkey(unsortedfile);
+        }
         cout << "output unsorted array to file " << UNSORTED << endl;
         superarray.push_back(array);
         cout << "Created unsorted array for case #" << c + 1 << endl;
@@ -676,7 +555,7 @@ void makeCases(int cases, vector<vector<entry>>& superarray, FILE* unsortedfile,
 
 #### 說明：
 
-- **功能**：生成指定數量的測試用例，每個用例包含 `CASE_ITEMS`（4000）個 `entry` 物件，根據模式生成鍵值並輸出至未排序檔案，儲存於 `superarray`。
+- **功能**：生成指定數量的測試用例，每個用例包含 `CASE_ITEMS`（6000）個 `entry` 物件，根據模式生成鍵值並輸出至未排序檔案，儲存於 `superarray`。
 - **參數**：
   - `cases`：生成用例數（預設 5）。
   - `superarray`：儲存測試用例的 `vector<vector<entry>>`。
@@ -690,7 +569,6 @@ void makeCases(int cases, vector<vector<entry>>& superarray, FILE* unsortedfile,
   - 每個 `entry` 包含鍵值與動態分配的 `node` 指標。
   - 使用 `outputkey` 將鍵值寫入 `unsortedfile`。
   - 將生成的陣列存入 `superarray`。
-  - **終端機訊息**：顯示已將未排序陣列輸出至檔案及創建用例的訊息。
 - **程式特性**：
   - 支援多種測試場景（最壞、平均、特定情況）。
   - 動態分配 `node`，需注意記憶體管理（本程式未顯式釋放）。
@@ -701,48 +579,61 @@ void makeCases(int cases, vector<vector<entry>>& superarray, FILE* unsortedfile,
 ### 五. 主程式與測試流程
 
 ```cpp
-int main() {
+int main(void) {
     remove(SORTED);
-    remove(UNSORTED);
-    remove(TIMEREC);
-    remove(COMPOSITE_TIMEREC);
     cout << "Removed old " << SORTED << endl;
+    remove(UNSORTED);
     cout << "Removed old " << UNSORTED << endl;
+    remove(TIMEREC);
     cout << "Removed old " << TIMEREC << endl;
+    remove(COMPOSITE_TIMEREC);
     cout << "Removed old " << COMPOSITE_TIMEREC << endl;
 
-    FILE* f_Unsorted = fopen(UNSORTED, "a");
-    FILE* f_Sorted = fopen(SORTED, "a");
+    FILE *f_Unsorted = fopen(UNSORTED, "a");
+    FILE *f_Sorted = fopen(SORTED, "a");
 
     srand(time(0));
     vector<vector<entry>> superarray[5];
     result result;
 
-    makeCases(CASES, superarray[0], f_Unsorted, "INSERTION");
-    makeCases(CASES, superarray[1], f_Unsorted, "QUICK");
-    makeCases(CASES, superarray[2], f_Unsorted, "MERGE");
-    makeCases(CASES, superarray[3], f_Unsorted, "HEAP");
+    makeCases(CASES, superarray[0], f_Unsorted, "INSERTION"); 
+    makeCases(CASES, superarray[1], f_Unsorted, "QUICK"); 
+    makeCases(CASES, superarray[2], f_Unsorted, "MERGE"); 
+    makeCases(CASES, superarray[3], f_Unsorted, "HEAP"); 
     makeCases(CASES, superarray[4], f_Unsorted, "RANDOM");
 
     for (int type = 0; type < 4; type++) {
         for (int i = 0, caseNum = 1; i < superarray[type].size(); i++, caseNum++) {
-            bool useAverage = (superarray[type][i].size() <= SMALL_DATA_THRESHOLD);
             switch (type) {
-            case 0: result = InsertionSort(superarray[type][i], caseNum, useAverage); break;
-            case 1: result = QuickSort(superarray[type][i], caseNum, useAverage); break;
-            case 2: result = MergeSort(superarray[type][i], caseNum, useAverage); break;
-            case 3: result = HeapSort(superarray[type][i], caseNum, useAverage); break;
+            case 0:
+                result = InsertionSort(superarray[type][i], caseNum);
+                break;
+            case 1:
+                result = QuickSort(superarray[type][i], caseNum);
+                break;
+            case 2:
+                result = MergeSort(superarray[type][i], caseNum);
+                break;
+            case 3:
+                result = HeapSort(superarray[type][i], caseNum);
+                break;
             }
-            fprintf(f_Sorted, "\nCase %d finished in %lld us\n", caseNum, result.timer);
-            for (auto& e : result.arr2) e.outputkey(f_Sorted);
+            fprintf(f_Sorted, "\nCase %d of %lu items finished in %lu microseconds\n", caseNum, CASE_ITEMS, result.timer);
+            for (int j = 0; j < CASE_ITEMS; j++) {
+                result.arr2[j].outputkey(f_Sorted);
+            }
             cout << "output sorted array to file " << SORTED << endl;
         }
     }
 
-    // 跑 Composite Sort
-    for (int i = 0, caseNum = 1; i < superarray[4].size(); i++, caseNum++) {
-        bool useAverage = (superarray[4][i].size() <= SMALL_DATA_THRESHOLD);
-        result = CompositeSort(superarray[4][i], caseNum, useAverage);
+    for (int i = 0; i < superarray[4].size(); i++) {
+        int caseNum = i + 1;
+        result = CompositeSort(superarray[4][i], caseNum);
+        fprintf(f_Sorted, "\nComposite Sort Case %d finished in %ld us\n", caseNum, result.timer);
+        for (const auto& e : result.arr2) {
+            e.outputkey(f_Sorted);
+        }
+        cout << "output sorted array to file " << SORTED << endl;
     }
 
     fclose(f_Unsorted);
@@ -759,20 +650,20 @@ int main() {
   - **隨機種子**：使用 `srand(time(0))` 初始化隨機數生成器，確保隨機資料可重現。
   - **測資生成**：調用 `makeCases` 生成五組測資，分別對應 Insertion Sort（逆序）、Quick Sort（逆序）、Merge Sort（逆序）、Heap Sort（部分亂序）及 Composite Sort（隨機）。
   - **排序執行**：
-    - 對前四組測資（`type = 0~3`）執行對應排序演算法，根據資料大小（≤ 100）決定是否啟用平均計時（`useAverage`）。
-    - 對第五組測資（隨機）執行 Composite Sort。
+    - 對前四組測資（`type = 0~3`）執行對應排序演算法（Insertion, Quick, Merge, Heap）。
+    - 對第五組測資（隨機）執行 Composite Sort，單獨處理並輸出。
   - **結果輸出**：
-    - 排序結果（鍵值）與執行時間寫入 `sorted.txt`。
+    - 排序結果（鍵值）與執行時間寫入 `sorted.txt`，Composite Sort 使用不同標頭（`"Composite Sort Case X finished in Y us"`）。
     - 時間與記憶體記錄分別寫入 `timer.txt`（單一排序法）與 `composite_timer.txt`（Composite Sort）。
-  - **終端機訊息**：顯示已移除舊檔案、已將排序結果輸出至檔案等訊息。
   - 關閉檔案並結束程式。
 - **程式特性**：
   - 模組化設計，清晰分離測資生成、排序執行與結果輸出。
   - 支援多種排序法與測試場景，方便擴展。
-  - 小資料量（n ≤ 100）使用平均計時，確保測量穩定。
+  - 未實現小資料量平均計時，適用於大資料量（n = 6000）測試。
   - 未處理動態分配的 `node` 記憶體釋放，可能導致記憶體洩漏。
 
 ---
+
 
 ## 測試與驗證
 
