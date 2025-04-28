@@ -745,33 +745,31 @@ int main() {
 
 ### 最壞執行時間表格 Worst-case Performance (Time in Microseconds)
 
-| Data Size | Insertion Sort | Quick Sort | Merge Sort | Heap Sort | Composite Sort |
-|-----------|----------------|------------|------------|-----------|----------------|
-| 500       | 847            | 440        | 2326       | 311       | 847            |
-| 1000      | 2766           | 1106       | 5090       | 320       | 5090           |
-| 2000      | 6395           | 2381       | 15428      | 615       | 615            |
-| 3000      | 14413          | 5218       | 23567      | 849       | 849            |
-| 4000      | 24047          | 9181       | 28200      | 1125      | 1125           |
-| 5000      | 39733          | 20349      | 30139      | 1377      | 1377           |
 
+| 資料數 (n) | Insertion | Quick | Merge   | Heap | Composite |
+|------------|-----------|-------|---------|------|-----------|
+| 500        | 411       | 216   | 4908    | 72   | 69        |
+| 1000       | 1501      | 586   | 12521   | 186  | 161       |
+| 2000       | 6173      | 2597  | 36074   | 424  | 424       |
+| 3000       | 14035     | 5069  | 36677   | 844  | 844       |
+| 4000       | 27056     | 9300  | 103982  | 853  | 834       |
+| 5000       | 37908     | 13752 | 62087   | 1247 | 1038      |
 
-*Note*: Composite Sort times reflect the chosen algorithm based on data size (Insertion Sort for n ≤ 32, Merge Sort for 32 < n ≤ 1000, Heap Sort for 1000 < n ≤ 5000, Quick Sort for n > 5000). For n = 6000, Composite Sort uses Quick Sort.
 
 ![image](https://github.com/Yangchenin41243245/Data_Structure_Homework_14_45/blob/proto2/homework1/src/pics/worst.png)
 
 ### 平均執行時間表格 Average-case Performance (Time in Microseconds)
 
-| Data Size | Insertion Sort | Quick Sort | Merge Sort | Heap Sort | Composite Sort |
-|-----------|----------------|------------|------------|-----------|----------------|
-| 500       | 701.0          | 325.8      | 2253.0     | 240.0     | 701.0          |
-| 1000      | 1906.4         | 792.6      | 4777.0     | 283.8     | 4777.0         |
-| 2000      | 6149.2         | 2261.8     | 13970.4    | 540.6     | 540.6          |
-| 3000      | 13777.4        | 5050.6     | 20875.4    | 717.6     | 717.6          |
-| 4000      | 23150.0        | 8675.4     | 25028.8    | 941.2     | 941.2          |
-| 5000      | 38502.8        | 15283.0    | 26602.8    | 1223.2    | 1223.2         |
-| 6000      | 57689.6        | 18273.4    | 31987.2    | 1478.4    | 18273.4        |
 
-*Note*: Composite Sort times reflect the chosen algorithm based on data size. For n = 6000, Composite Sort uses Quick Sort, achieving Quick Sort’s average-case performance.
+| 資料數 (n) | Insertion | Quick    | Merge     | Heap    | Composite |
+|------------|-----------|----------|-----------|---------|-----------|
+| 500        | 369.6     | 154.0    | 3363.4    | 66.5    | 66.6      |
+| 1000       | 1464.6    | 554.6    | 10503.6   | 153.5   | 155.2     |
+| 2000       | 5999.0    | 2255.8   | 29185.4   | 348.0   | 363.0     |
+| 3000       | 13500.8   | 4894.2   | 30507.4   | 651.1   | 766.8     |
+| 4000       | 24254.8   | 9032.6   | 81311.2   | 721.8   | 736.0     |
+| 5000       | 36125.6   | 13033.8  | 51574.6   | 948.8   | 942.2     |
+
 
 ![image](https://github.com/Yangchenin41243245/Data_Structure_Homework_14_45/blob/proto2/homework1/src/pics/average.png)
 
