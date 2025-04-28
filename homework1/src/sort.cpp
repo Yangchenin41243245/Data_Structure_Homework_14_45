@@ -14,9 +14,9 @@ using namespace std;
 #define CASES 5      // number of cases
 #define RNGKEYS rand() % CASE_ITEMS
 #define INSKEYS CASE_ITEMS - i // worst case for insertion sort
-#define UNSORTED "D:/work/sort/tosort.txt"
-#define SORTED "D:/work/sort/sorted.txt"
-#define TIMEREC "D:/work/sort/timer.txt"
+#define UNSORTED "./tosort.txt"
+#define SORTED "./sorted.txt"
+#define TIMEREC "./timer.txt"
 
 struct node
 {
